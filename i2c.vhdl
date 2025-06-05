@@ -33,16 +33,17 @@ use ieee.numeric_std.all;
 --use UNISIM.VComponents.all;
 
 entity i2c is
-    generic(NUM_COUNTER : integer := 500
+    generic(NUM_COUNTER : integer := 250;
+            BIT_ADDRESS : integer := 7
             );
     Port ( clock        : in    STD_LOGIC;
            reset        : in    STD_LOGIC;
            rw           : in    STD_LOGIC;
            run          : in    STD_LOGIC;
            address      : in    STD_LOGIC_VECTOR (10 downto 0);
-           number_data  : in    STD_LOGIC_VECTOR (2  downto 0);
-           r_data       : in    STD_LOGIC_VECTOR (31 downto 0);
-           w_data       : out   STD_LOGIC_VECTOR (31 downto 0);
+           number_data  : in    STD_LOGIC_VECTOR (6  downto 0);
+           w_data       : in    STD_LOGIC_VECTOR (31 downto 0);
+           r_data       : out   STD_LOGIC_VECTOR (31 downto 0);
            error_ack    : out   STD_LOGIC;
            busy         : out   STD_LOGIC;
            scl          : out   STD_LOGIC;
@@ -52,89 +53,164 @@ end i2c;
 
 architecture Behavioral of i2c is
     
-    signal CounterClock_1 : unsigned(8 downto 0) := (others => '0');  -- 9-Bit counter for scl timing    
-    signal scl_internal   : std_logic   := '1';
-    signal sda_internal   : std_logic   := '1';
-    signal scl_en         : std_logic   := '0';
-    signal sda_en         : std_logic   := '0';
-    signal flag_pro1      : std_logic   := '0';
-    signal flag_pro2      : std_logic   := '0';
-    signal flag_pro3      : std_logic   := '0';
-    signal flag_pro4      : std_logic   := '0';
-    signal flag_pro5      : std_logic   := '0';
+    signal CounterClock_1  : unsigned(8 downto 0) := (others => '0');  -- 9-Bit counter for scl timing 
+    signal num_bit         : unsigned(6 downto 0) := (others => '0');  -- Counting data bit  
+    signal cal_zero        : unsigned(8 downto 0) := (others => '0');
+    signal cal_one         : unsigned(8 downto 0) := (others => '0'); 
+    signal scl_internal    : std_logic   := '1';
+    signal sda_internal    : std_logic   := '1';
+    signal let_data        : std_logic   := '1';
+    signal scl_en          : std_logic   := '0';
+    signal sda_en          : std_logic   := '0';
+    signal old_scl         : std_logic   := '0';
+    signal old_run         : std_logic   := '0';
+
     
-    type state_type is (S_IDEL, S_READY, S_START, S_ADDRESS, S_SLV_ACK1, S_READ, S_WRITE, S_END);
+    type state_type is (S_IDEL, S_READY, S_START, S_ADDRESS, S_SLV_ACK1, S_WRITE, S_SLV_ACK2, S_READ, S_mas_ACK1, S_END);
     signal state : state_type := S_IDEL;
+    
+    constant LAST_ADDR_BIT : integer := BIT_ADDRESS - 1;
     
 begin
     
     
- --================ Process control i2c unit =================
-    PRO_0 : process(clock)
+--================ Process operation =================    
+    PRO_1 : process(clock)
     begin
+        old_scl <= scl_internal;
+        old_run <= run;
         if(rising_edge(clock))then
             if(reset = '0')then
                 state <= S_IDEL;
             end if;
-         --   if()
+            
+            case(state) is
+                when S_IDEL =>
+                    state <= S_READY;
+                    scl_en <= '0';
+                    sda_en <= '0';                    
+                    
+                when S_READY =>
+                    busy   <= '0';
+                    if(old_run = '0'  and  run = '1')then
+                        state <= S_START;
+                    end if;
+                    
+                when S_START =>
+                    busy         <= '1';
+                    let_data     <= '1';
+                    r_data       <= (others => '0');
+                    error_ack    <= '0';
+                    scl_en       <= '1';
+                    sda_en       <= '1';
+                    sda_internal <= '0';
+                    num_bit      <= (others => '0');
+                    state        <= S_ADDRESS;         
+                    
+                when S_ADDRESS =>
+                    if(scl_internal = '0' and  CounterClock_1 = 50)then  --  When we need to write the address bits
+                        
+                        num_bit <= num_bit + 1;  --  Counting written bits
+                        if(num_bit = LAST_ADDR_BIT)then     --  In the last verse we must write rw bits 
+                            sda_internal <= rw;
+                        elsif(num_bit = BIT_ADDRESS)then  --  We wait a cycle to reach S_SLV_ACK1
+                            num_bit <= (others => '0');
+                            state <= S_SLV_ACK1;
+                        else
+                            sda_internal <= address(to_integer(num_bit));  -- here we write address bits
+                        end if;
+                    end if;
+                    
+                    
+                when S_SLV_ACK1 =>
+                    if(scl_internal = '1' and  CounterClock_1 >= 50)then    -- Start sampling.
+                        if(sda_internal = '1')then    
+                            cal_one <= cal_one + 1;  -- here we counting zeros and ones 
+                        else
+                            cal_zero <= cal_zero + 1;
+                        end if;
+                    end if;
+                    if(old_scl = '1'  and  scl_internal = '0')then   -- Now we have to underastand ack
+                        if(cal_zero < cal_one)then      -- ack
+                            cal_zero <= (others => '0');
+                            cal_one  <= (others => '0');
+                            if(rw = '1')then        
+                                state <= S_READ;    -- we want to read data from slave
+                            else
+                                state <= S_WRITE;   -- we want to write data for slave
+                            end if; 
+                        else                            -- nack
+                            state       <= S_END;
+                            error_ack   <= '1';
+                        end if;
+                    end if;
+                    
+                when S_WRITE =>
+                    if(scl_internal = '0' and  CounterClock_1 = 50)then
+                        
+                        if((num_bit = 8  or  num_bit = 16  or  num_bit = 24  or  num_bit = 32) and let_data = '0')then
+                            state <= S_SLV_ACK2;
+                        else
+                            sda_internal <= w_data(to_integer(num_bit));
+                            num_bit <= num_bit + 1;
+                            let_data     <= '0';
+                        end if;
+                        
+                        
+                    end if;
+                when S_SLV_ACK2 =>
+                    let_data     <= '1';
+                    if(scl_internal = '1' and  CounterClock_1 >= 50)then    -- Start sampling.
+                        if(sda_internal = '1')then    
+                            cal_one <= cal_one + 1;  -- here we counting zeros and ones 
+                        else
+                            cal_zero <= cal_zero + 1;
+                        end if;
+                    end if;
+                    if(old_scl = '1'  and  scl_internal = '0')then   -- Now we have to underastand ack
+                        if(cal_zero < cal_one)then      -- ack
+                            cal_zero <= (others => '0');
+                            cal_one  <= (others => '0');
+                            if(num_bit >= unsigned(number_data))then
+                                state <= S_END;
+                            else
+                                state <= S_WRITE;
+                            end if;          
+                        else                            -- nack
+                            state       <= S_END;
+                            error_ack   <= '1';
+                        end if;
+                    end if;
+                    
+                when S_READ =>
+                    
+                when S_mas_ACK1 =>
+                    
+                when S_END =>
+                    
+                when others =>
+                    
+            end case;
         end if;
     end process;
     
---================ Process begin , ready , start , end =================    
-    PRO_1 : process(clock)
-    begin
-        flag_pro1 <= '0';
-        if(rising_edge(clock))then
-            if(state = S_IDEL   or  state = S_READY  or  state = S_START  or  state = S_END)then
-                
-            end if;
-        end if;
-    end process;
-    
---================ Process address and ACK/NACK =================
-    PRO_2 : process(clock)
-    begin
-        flag_pro2 <= '0';
-        if(rising_edge(clock))then
-            if(state = S_ADDRESS   or   state = S_SLV_ACK1)then
-                
-            end if;
-        end if;
-    end process;
 
---================ Process data write from slave =================
-    PRO_3 : process(clock)
-    begin
-        flag_pro3 <= '0';
-        if(rising_edge(clock))then
-            if(state = S_ADDRESS)then
-                
-            end if;
-        end if;
-    end process;
-
---================ Process data read from slave =================
-    PRO_4 : process(clock)
-    begin
-        flag_pro4 <= '0';
-        if(rising_edge(clock))then
-            if(state = S_ADDRESS)then
-                
-            end if;
-        end if;
-    end process;
-    
 
     
 --================ Process generate scl =================    
-    PRO_5 : process(clock)
+    PRO_2 : process(clock)
     begin
         if(rising_edge(clock))then
-            if(to_integer( CounterClock_1) >= NUM_COUNTER )then
-                scl_internal <= not scl_internal;
-                CounterClock_1 <= (others => '0');
+            if(scl_en = '0')then
+                CounterClock_1  <= (others => '0');
+                scl_internal    <= '1';
             else
-                CounterClock_1 <= CounterClock_1 + 1;
+                if(to_integer( CounterClock_1) >= NUM_COUNTER )then
+                    scl_internal    <= not scl_internal;
+                    CounterClock_1  <= (others => '0');
+                else
+                    CounterClock_1  <= CounterClock_1 + 1;
+                end if;
             end if;
         end if;
     end process;
