@@ -38,7 +38,7 @@ entity i2c is
             );
     Port ( clock        : in    STD_LOGIC;
            reset        : in    STD_LOGIC;
-           rw           : in    STD_LOGIC;
+           rw           : in    STD_LOGIC;      -- rw = '1' --> read       rw = '0' --> write
            run          : in    STD_LOGIC;
            address      : in    STD_LOGIC_VECTOR (10 downto 0);
            number_data  : in    STD_LOGIC_VECTOR (6  downto 0);
@@ -66,20 +66,26 @@ architecture Behavioral of i2c is
     signal old_run         : std_logic   := '0';
 
     
+
+    
     type state_type is (S_IDEL, S_READY, S_START, S_ADDRESS, S_SLV_ACK1, S_WRITE, S_SLV_ACK2, S_READ, S_mas_ACK1, S_END);
     signal state : state_type := S_IDEL;
     
-    constant LAST_ADDR_BIT : integer := BIT_ADDRESS - 1;
+    constant LAST_ADDR_BIT : integer := BIT_ADDRESS + 1;
     
 begin
     
     
+
+    
 --================ Process operation =================    
     PRO_1 : process(clock)
     begin
-        old_scl <= scl_internal;
-        old_run <= run;
+        
         if(rising_edge(clock))then
+            old_scl <= scl_internal;
+            old_run <= run;
+        
             if(reset = '0')then
                 state <= S_IDEL;
             end if;
@@ -111,11 +117,12 @@ begin
                     if(scl_internal = '0' and  CounterClock_1 = 50)then  --  When we need to write the address bits
                         
                         num_bit <= num_bit + 1;  --  Counting written bits
-                        if(num_bit = LAST_ADDR_BIT)then     --  In the last verse we must write rw bits 
+                        if(num_bit = BIT_ADDRESS)then     --  In the last verse we must write rw bits 
                             sda_internal <= rw;
-                        elsif(num_bit = BIT_ADDRESS)then  --  We wait a cycle to reach S_SLV_ACK1
+                        elsif(num_bit = LAST_ADDR_BIT)then  --  We wait a cycle to reach S_SLV_ACK1
                             num_bit <= (others => '0');
                             state <= S_SLV_ACK1;
+                            sda_en       <= '0';
                         else
                             sda_internal <= address(to_integer(num_bit));  -- here we write address bits
                         end if;
@@ -124,14 +131,16 @@ begin
                     
                 when S_SLV_ACK1 =>
                     if(scl_internal = '1' and  CounterClock_1 >= 50)then    -- Start sampling.
-                        if(sda_internal = '1')then    
+                        sda_en       <= '0';
+                        if(sda = '1')then    
                             cal_one <= cal_one + 1;  -- here we counting zeros and ones 
                         else
                             cal_zero <= cal_zero + 1;
                         end if;
                     end if;
                     if(old_scl = '1'  and  scl_internal = '0')then   -- Now we have to underastand ack
-                        if(cal_zero < cal_one)then      -- ack
+                        if(cal_zero > cal_one)then      -- ack
+                            sda_en       <= '1';
                             cal_zero <= (others => '0');
                             cal_one  <= (others => '0');
                             if(rw = '1')then        
@@ -161,7 +170,7 @@ begin
                 when S_SLV_ACK2 =>
                     let_data     <= '1';
                     if(scl_internal = '1' and  CounterClock_1 >= 50)then    -- Start sampling.
-                        if(sda_internal = '1')then    
+                        if(sda = '1')then    
                             cal_one <= cal_one + 1;  -- here we counting zeros and ones 
                         else
                             cal_zero <= cal_zero + 1;
@@ -189,7 +198,7 @@ begin
                 when S_END =>
                     
                 when others =>
-                    
+                    state <= S_IDEL;
             end case;
         end if;
     end process;
