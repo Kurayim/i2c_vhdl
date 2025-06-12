@@ -35,7 +35,7 @@ use ieee.numeric_std.all;
 
 entity set_sht3x is
     port(clock      :  in       std_logic;
-         reset      :  in       std_logic;
+         reset_push :  in       std_logic;
          ex_signal  :  in       std_logic;
          led        :  out      std_logic;
          scl        :  out      std_logic;
@@ -68,18 +68,18 @@ architecture Behavioral of set_sht3x is
     end component;
     
     -- Signals to connect to the UUT
-    signal clock_s        : std_logic := '0';
-    signal reset_s        : std_logic := '0';
-    signal rw_s           : std_logic := '0';
-    signal run_s          : std_logic := '0';
-    signal address_s      : std_logic_vector(10 downto 0) := (others => '0');
-    signal number_data_s  : std_logic_vector(6  downto 0) := (others => '0');
-    signal w_data_s       : std_logic_vector(31 downto 0) := (others => '0');
-    signal r_data_s       : std_logic_vector(31 downto 0);
-    signal error_ack_s    : std_logic;
-    signal busy_s         : std_logic;
-    signal old_ex_signal  : std_logic;
-    signal led_s          : std_logic;
+    
+    signal reset_sig     : std_logic := '1';
+    signal rw_sig        : std_logic := '0'; -- write = '0'
+    signal run_sig       : std_logic := '0';
+    signal address_sig   : std_logic_vector(10 downto 0) := (others => '0');
+    signal number_data_sig : std_logic_vector(6 downto 0) := (others => '0');
+    signal w_data_sig    : std_logic_vector(31 downto 0) := (others => '0');
+    signal r_data_sig    : std_logic_vector(31 downto 0);
+    signal error_ack_sig : std_logic;
+    signal busy_sig      : std_logic;
+    signal led_sig       : std_logic;
+    signal old_ex_signal : std_logic;
 
 begin
     
@@ -90,44 +90,44 @@ begin
             BIT_ADDRESS => 7
         )
         port map(
-            clock        => clock_s,
-            reset        => reset_s,
-            rw           => rw_s,
-            run          => run_s,
-            address      => address_s,
-            number_data  => number_data_s,
-            w_data       => w_data_s,
-            r_data       => r_data_s,
-            error_ack    => error_ack_s,
-            busy         => busy_s,
+            clock        => clock,
+            reset        => reset_sig,
+            rw           => rw_sig,
+            run          => run_sig,
+            address      => address_sig,
+            number_data  => number_data_sig,
+            w_data       => w_data_sig,
+            r_data       => r_data_sig,
+            error_ack    => error_ack_sig,
+            busy         => busy_sig,
             scl          => scl,
             sda          => sda,
-            led          => led_s
+            led          => led_sig
         );
 
     main_pro : process(clock)
     begin
         if(rising_edge(clock))then
             old_ex_signal <= ex_signal;
-            led <= led_s;
+       --     led <= led_s;
             
             if(old_ex_signal = '1'  and  ex_signal = '0')then
                 
-   --             led <= '1';
-                reset_s <= '1';
-                rw_s <= '0';
-                run_s <= '1';
-                address_s <= "00000100101";
-                number_data_s <= "0000001";
+--   --             led <= '1';
+                reset_sig <= '1';
+                rw_sig <= '0';
+                run_sig <= '1';
+                address_sig <= "00001000101";
+                number_data_sig <= "0000001";
                 
             end if;
-            if(reset = '0')then
+            if(reset_push = '0')then
     --            led <= '0';
-                reset_s <= '0';
-                rw_s <= '1';
-                run_s <= '0';
-                address_s <= "00000000000";
-                number_data_s <= "0000001";
+                reset_sig <= '0';
+                rw_sig <= '1';
+                run_sig <= '0';
+                address_sig <= "00000000000";
+                number_data_sig <= "0000001";
                   
             end if;
         end if;
