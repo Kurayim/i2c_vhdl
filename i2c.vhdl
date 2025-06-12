@@ -93,12 +93,12 @@ begin
                 state <= S_IDEL;
             end if;
             
-            if(run = '1')then
-                led <= '1';
-            else
-                led <= '0';
-            end if;
-           
+--            if(run = '1')then
+--                led <= '1';
+--            else
+--                led <= '0';
+--            end if;
+           led <= '1';
             
             case(state) is
                 when S_IDEL =>
@@ -165,6 +165,7 @@ begin
                     end if;
                     
                 when S_WRITE =>
+                    led <= '1';
                     if(scl_internal = '0' and  CounterClock_1 = 50)then
                         
                         if((num_bit = 8  or  num_bit = 16  or  num_bit = 24  or  num_bit = 32) and let_data = '0')then
