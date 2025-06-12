@@ -47,7 +47,8 @@ entity i2c is
            error_ack    : out   STD_LOGIC;
            busy         : out   STD_LOGIC;
            scl          : out   STD_LOGIC;
-           sda          : inout STD_LOGIC
+           sda          : inout STD_LOGIC;
+           led          : out   std_logic := '1'
            );
 end i2c;
 
@@ -85,10 +86,19 @@ begin
         if(rising_edge(clock))then
             old_scl <= scl_internal;
             old_run <= run;
+            
+            led <= '0';
         
             if(reset = '0')then
                 state <= S_IDEL;
             end if;
+            
+            if(run = '1')then
+                led <= '1';
+            else
+                led <= '0';
+            end if;
+           
             
             case(state) is
                 when S_IDEL =>
