@@ -102,7 +102,7 @@ begin
             busy         => busy_sig,
             scl          => scl,
             sda          => sda,
-            led          => led_sig
+            led          => led
         );
 
     main_pro : process(clock)
@@ -117,7 +117,7 @@ begin
                 reset_sig <= '1';
                 rw_sig <= '0';
                 run_sig <= '1';
-                address_sig <= "00001000101";
+                address_sig <= "00001000100";
                 number_data_sig <= "0000001";
                 
             end if;
@@ -145,3 +145,5 @@ end Behavioral;
 
 
 
+
+            
