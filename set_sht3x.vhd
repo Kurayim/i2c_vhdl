@@ -37,6 +37,7 @@ entity set_sht3x is
     port(clock      :  in       std_logic;
          reset      :  in       std_logic;
          ex_signal  :  in       std_logic;
+         led        :  out      std_logic;
          scl        :  out      std_logic;
          sda        :  inout    std_logic
         );
@@ -61,7 +62,8 @@ architecture Behavioral of set_sht3x is
             error_ack    : out   std_logic;
             busy         : out   std_logic;
             scl          : out   std_logic;
-            sda          : inout std_logic
+            sda          : inout std_logic;
+            led          : out   std_logic
         );
     end component;
     
@@ -76,7 +78,8 @@ architecture Behavioral of set_sht3x is
     signal r_data_s       : std_logic_vector(31 downto 0);
     signal error_ack_s    : std_logic;
     signal busy_s         : std_logic;
-    signal old_ex_signal   : std_logic;
+    signal old_ex_signal  : std_logic;
+    signal led_s          : std_logic;
 
 begin
     
@@ -98,29 +101,34 @@ begin
             error_ack    => error_ack_s,
             busy         => busy_s,
             scl          => scl,
-            sda          => sda
+            sda          => sda,
+            led          => led_s
         );
 
     main_pro : process(clock)
     begin
         if(rising_edge(clock))then
             old_ex_signal <= ex_signal;
+            led <= led_s;
+            
             if(old_ex_signal = '1'  and  ex_signal = '0')then
                 
+   --             led <= '1';
                 reset_s <= '1';
                 rw_s <= '0';
                 run_s <= '1';
-                address_s <= "0000100101";
-                number_data_s <= X"01";
+                address_s <= "00000100101";
+                number_data_s <= "0000001";
                 
             end if;
             if(reset = '0')then
+    --            led <= '0';
                 reset_s <= '0';
                 rw_s <= '1';
                 run_s <= '0';
-                address_s <= "0000000000";
-                number_data_s <= X"00";
-                 
+                address_s <= "00000000000";
+                number_data_s <= "0000001";
+                  
             end if;
         end if;
     end process;        
