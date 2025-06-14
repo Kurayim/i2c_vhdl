@@ -72,11 +72,16 @@ architecture Behavioral of i2c is
     signal cal_one         : unsigned(8 downto 0) := (others => '0'); 
     signal scl_internal    : std_logic   := '1';
     signal sda_internal    : std_logic   := '1';
-    signal let_data        : std_logic   := '1';
     signal scl_en          : std_logic   := '0';
     signal sda_en          : std_logic   := '0';
     signal old_scl         : std_logic   := '0';
     signal old_run         : std_logic   := '0';
+    signal r_data_1_ila      : std_logic_vector (7 downto 0);
+    signal r_data_2_ila      : std_logic_vector (7 downto 0);
+    signal r_data_3_ila      : std_logic_vector (7 downto 0);
+    signal r_data_4_ila      : std_logic_vector (7 downto 0);
+    signal r_data_5_ila      : std_logic_vector (7 downto 0);
+    signal r_data_6_ila      : std_logic_vector (7 downto 0);
 
     
 
@@ -85,10 +90,35 @@ architecture Behavioral of i2c is
     signal state : state_type := S_IDEL;
     
     
+    component ila_0
+    port (
+        clk    : in  std_logic;
+        probe0 : in  std_logic_vector(7 downto 0);
+        probe1 : in  std_logic_vector(7 downto 0);
+        probe2 : in  std_logic_vector(7 downto 0);
+        probe3 : in  std_logic_vector(7 downto 0);
+        probe4 : in  std_logic_vector(7 downto 0);
+        probe5 : in  std_logic_vector(7 downto 0)
+    );
+end component;
+    
+    
+    
+     
+    
 begin
     
-    
-
+    ila_inst : ila_0
+   port map (
+     clk    => clock,
+     probe0 => r_data_1_ila,
+     probe1 => r_data_2_ila,
+     probe2 => r_data_3_ila,
+     probe3 => r_data_4_ila,
+     probe4 => r_data_5_ila,
+     probe5 => r_data_6_ila
+   );
+ 
     
 --================ Process operation =================    
     PRO_1 : process(clock)
@@ -115,31 +145,33 @@ begin
                 when S_IDEL =>
                     state <= S_READY;
                     scl_en <= '0';
-                    sda_en <= '0';                    
+                    sda_en <= '0'; 
+                    scl_internal <= '0';
+                    sda_internal <= '0';
+                    busy   <= '0';                   
                     
                 when S_READY =>
-                    busy   <= '0';
                     if(old_run = '0'  and  run = '1')then
-                        state <= S_START;
-                        num_bit      <= to_unsigned(BIT_ADDRESS,7);
+                        state   <= S_START;
+                        num_bit <= to_unsigned(BIT_ADDRESS,7);
                     end if;
                     
                 when S_START =>
                     busy         <= '1';
-                    let_data     <= '1';
-                    r_data_1       <= (others => '0');
-                    r_data_2       <= (others => '0');
-                    r_data_3       <= (others => '0');
-                    r_data_4       <= (others => '0');
-                    r_data_5       <= (others => '0');
-                    r_data_6       <= (others => '0');
+                    r_data_1     <= (others => '0');
+                    r_data_2     <= (others => '0');
+                    r_data_3     <= (others => '0');
+                    r_data_4     <= (others => '0');
+                    r_data_5     <= (others => '0');
+                    r_data_6     <= (others => '0');
+                    cal_zero     <= (others => '0');
+                    cal_one      <= (others => '0');
                     error_ack    <= '0';
                     scl_en       <= '1';
                     sda_en       <= '1';
                     sda_internal <= '0';
-                    num_bit      <= (others => '0');
                     state        <= S_ADDRESS;
-                    num_bit <= num_bit - 1;  --  Counting written bits
+                    num_bit      <= num_bit - 1;  --  Counting written bits
                           
                     
                 when S_ADDRESS =>
@@ -152,7 +184,7 @@ begin
                         elsif(num_bit = "1111110")then
                             num_bit <= (others => '0');
                             state <= S_SLV_ACK1;
-                            sda_en       <= '0';
+                            sda_en <= '0';
                         else
                             sda_internal <= address(to_integer(num_bit));  -- here we write address bits
                         end if;
@@ -162,7 +194,7 @@ begin
                 when S_SLV_ACK1 =>
                     if(scl_internal = '1' and  CounterClock_1 >= 50)then    -- Start sampling.
                         if(sda = '1')then    
-                            cal_one <= cal_one + 1;  -- here we counting zeros and ones 
+                            cal_one  <= cal_one + 1;  -- here we counting zeros and ones 
                         else
                             cal_zero <= cal_zero + 1;
                         end if;
@@ -175,10 +207,10 @@ begin
                             num_byte <= to_unsigned(1,4);
                             if(rw = '1')then        
                                 state    <= S_READ;    -- we want to read data from slave
-                                sda_en       <= '0';
+                                sda_en   <= '0';
                             else
                                 state    <= S_WRITE;   -- we want to write data for slave
-                                sda_en       <= '1';
+                                sda_en   <= '1';
                             end if; 
                         else                            -- nack
                             state       <= S_END;
@@ -213,7 +245,6 @@ begin
                     end if;
                     
                 when S_SLV_ACK2 =>
-                    let_data     <= '1';
                     if(scl_internal = '1' and  CounterClock_1 >= 50)then    -- Start sampling.
                         if(sda = '1')then    
                             cal_one <= cal_one + 1;  -- here we counting zeros and ones 
