@@ -118,7 +118,17 @@ begin
      probe4 => r_data_5_ila,
      probe5 => r_data_6_ila
    );
- 
+   
+   
+   
+   
+    r_data_1 <= r_data_1_ila;
+    r_data_2 <= r_data_2_ila;
+    r_data_3 <= r_data_3_ila;
+    r_data_4 <= r_data_4_ila;
+    r_data_5 <= r_data_5_ila;
+    r_data_6 <= r_data_6_ila;
+    
     
 --================ Process operation =================    
     PRO_1 : process(clock)
@@ -146,7 +156,6 @@ begin
                     state <= S_READY;
                     scl_en <= '0';
                     sda_en <= '0'; 
-                    scl_internal <= '0';
                     sda_internal <= '0';
                     busy   <= '0';                   
                     
@@ -158,12 +167,12 @@ begin
                     
                 when S_START =>
                     busy         <= '1';
-                    r_data_1     <= (others => '0');
-                    r_data_2     <= (others => '0');
-                    r_data_3     <= (others => '0');
-                    r_data_4     <= (others => '0');
-                    r_data_5     <= (others => '0');
-                    r_data_6     <= (others => '0');
+                    r_data_1_ila     <= (others => '0');
+                    r_data_2_ila     <= (others => '0');
+                    r_data_3_ila     <= (others => '0');
+                    r_data_4_ila     <= (others => '0');
+                    r_data_5_ila     <= (others => '0');
+                    r_data_6_ila     <= (others => '0');
                     cal_zero     <= (others => '0');
                     cal_one      <= (others => '0');
                     error_ack    <= '0';
@@ -289,31 +298,31 @@ begin
                         num_bit  <= num_bit - 1;
                         if(cal_zero < cal_one)then     
                            if(num_byte = to_unsigned(1,4))then
-                               r_data_1(to_integer(num_bit)) <= '1';               
+                               r_data_1_ila(to_integer(num_bit)) <= '1';               
                            elsif(num_byte = to_unsigned(2,4))then
-                               r_data_2(to_integer(num_bit)) <= '1';
+                               r_data_2_ila(to_integer(num_bit)) <= '1';
                            elsif(num_byte = to_unsigned(3,4))then
-                               r_data_3(to_integer(num_bit)) <= '1';
+                               r_data_3_ila(to_integer(num_bit)) <= '1';
                            elsif(num_byte = to_unsigned(4,4))then
-                               r_data_4(to_integer(num_bit)) <= '1';
+                               r_data_4_ila(to_integer(num_bit)) <= '1';
                            elsif(num_byte = to_unsigned(5,4))then
-                               r_data_5(to_integer(num_bit)) <= '1';
+                               r_data_5_ila(to_integer(num_bit)) <= '1';
                            elsif(num_byte = to_unsigned(6,4))then
-                               r_data_6(to_integer(num_bit)) <= '1';
+                               r_data_6_ila(to_integer(num_bit)) <= '1';
                            end if;
                         else    
                             if(num_byte = to_unsigned(1,4))then
-                               r_data_1(to_integer(num_bit)) <= '0';               
+                               r_data_1_ila(to_integer(num_bit)) <= '0';               
                            elsif(num_byte = to_unsigned(2,4))then
-                               r_data_2(to_integer(num_bit)) <= '0';
+                               r_data_2_ila(to_integer(num_bit)) <= '0';
                            elsif(num_byte = to_unsigned(3,4))then
-                               r_data_3(to_integer(num_bit)) <= '0';
+                               r_data_3_ila(to_integer(num_bit)) <= '0';
                            elsif(num_byte = to_unsigned(4,4))then
-                               r_data_4(to_integer(num_bit)) <= '0';
+                               r_data_4_ila(to_integer(num_bit)) <= '0';
                            elsif(num_byte = to_unsigned(5,4))then
-                               r_data_5(to_integer(num_bit)) <= '0';
+                               r_data_5_ila(to_integer(num_bit)) <= '0';
                            elsif(num_byte = to_unsigned(6,4))then
-                               r_data_6(to_integer(num_bit)) <= '0';
+                               r_data_6_ila(to_integer(num_bit)) <= '0';
                            end if;
                         end if;
                         if(num_bit = to_unsigned(0,7))then
