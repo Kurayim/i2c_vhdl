@@ -182,6 +182,7 @@ begin
                             end if; 
                         else                            -- nack
                             state       <= S_END;
+                            sda_en      <= '1';
                             error_ack   <= '1';
                         end if;
                     end if;
@@ -225,7 +226,8 @@ begin
                             cal_zero <= (others => '0');
                             cal_one  <= (others => '0');
                             if(num_byte >= unsigned(num_data_tx))then
-                                state <= S_END;
+                                state   <= S_END;
+                                sda_en  <= '1';
                             else
                                 state    <= S_WRITE;
                                 sda_en   <= '1';
@@ -234,6 +236,7 @@ begin
                             end if;          
                         else                            -- nack
                             state       <= S_END;
+                            sda_en      <= '1';
                             error_ack   <= '1';
                         end if;
                     end if;
@@ -295,6 +298,7 @@ begin
                     if(old_scl = '1'  and  scl_internal = '0')then
                         if(num_byte >= unsigned(num_data_rx))then
                             state <= S_END;
+                            sda_en   <= '1';
                         else
                             state <= S_READ;
                             sda_en   <= '0';
@@ -303,7 +307,7 @@ begin
                         end if;
                     end if;
                 when S_END =>
-                    scl_internal <= '0';
+                    sda_internal <= '0';
                     if(scl_internal = '1' and  CounterClock_1 >= 50)then
                         state        <= S_IDEL;
                         sda_internal <= '1';
