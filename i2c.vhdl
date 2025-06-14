@@ -15,7 +15,7 @@
 -- Revision:
 -- Revision 0.01 - File Created
 -- Additional Comments:
---  
+-- 
 ----------------------------------------------------------------------------------
 
 
@@ -171,13 +171,13 @@ begin
                         if(cal_zero > cal_one)then      -- ack
                             cal_zero <= (others => '0');
                             cal_one  <= (others => '0');
+                            num_bit  <= to_unsigned(7,7);
+                            num_byte <= to_unsigned(1,4);
                             if(rw = '1')then        
                                 state    <= S_READ;    -- we want to read data from slave
                                 sda_en       <= '0';
                             else
                                 state    <= S_WRITE;   -- we want to write data for slave
-                                num_bit  <= to_unsigned(7,7);
-                                num_byte <= to_unsigned(1,4);
                                 sda_en       <= '1';
                             end if; 
                         else                            -- nack
@@ -210,6 +210,7 @@ begin
                         end if;
 
                     end if;
+                    
                 when S_SLV_ACK2 =>
                     let_data     <= '1';
                     if(scl_internal = '1' and  CounterClock_1 >= 50)then    -- Start sampling.
@@ -221,15 +222,15 @@ begin
                     end if;
                     if(old_scl = '1'  and  scl_internal = '0')then   -- Now we have to underastand ack
                         if(cal_zero > cal_one)then      -- ack
-                            sda_en       <= '1';
                             cal_zero <= (others => '0');
                             cal_one  <= (others => '0');
                             if(num_byte >= unsigned(num_data_tx))then
                                 state <= S_END;
                             else
-                                state <= S_WRITE;
+                                state    <= S_WRITE;
+                                sda_en   <= '1';
                                 num_byte <= num_byte + 1;
-                                num_bit <= to_unsigned(7,7);
+                                num_bit  <= to_unsigned(7,7);
                             end if;          
                         else                            -- nack
                             state       <= S_END;
@@ -237,12 +238,78 @@ begin
                         end if;
                     end if;
                     
+                    
+                    
                 when S_READ =>
+                
+                    if(scl_internal = '1' and  CounterClock_1 >= 50)then
+                        if(sda = '1')then    
+                            cal_one <= cal_one + 1;  
+                        else
+                            cal_zero <= cal_zero + 1;
+                        end if;
+                    end if;
+                    if(old_scl = '1'  and  scl_internal = '0')then
+                        cal_zero <= (others => '0');
+                        cal_one  <= (others => '0');
+                        num_bit  <= num_bit - 1;
+                        if(cal_zero < cal_one)then     
+                           if(num_byte = to_unsigned(1,4))then
+                               r_data_1(to_integer(num_bit)) <= '1';               
+                           elsif(num_byte = to_unsigned(2,4))then
+                               r_data_2(to_integer(num_bit)) <= '1';
+                           elsif(num_byte = to_unsigned(3,4))then
+                               r_data_3(to_integer(num_bit)) <= '1';
+                           elsif(num_byte = to_unsigned(4,4))then
+                               r_data_4(to_integer(num_bit)) <= '1';
+                           elsif(num_byte = to_unsigned(5,4))then
+                               r_data_5(to_integer(num_bit)) <= '1';
+                           elsif(num_byte = to_unsigned(6,4))then
+                               r_data_6(to_integer(num_bit)) <= '1';
+                           end if;
+                        else    
+                            if(num_byte = to_unsigned(1,4))then
+                               r_data_1(to_integer(num_bit)) <= '0';               
+                           elsif(num_byte = to_unsigned(2,4))then
+                               r_data_2(to_integer(num_bit)) <= '0';
+                           elsif(num_byte = to_unsigned(3,4))then
+                               r_data_3(to_integer(num_bit)) <= '0';
+                           elsif(num_byte = to_unsigned(4,4))then
+                               r_data_4(to_integer(num_bit)) <= '0';
+                           elsif(num_byte = to_unsigned(5,4))then
+                               r_data_5(to_integer(num_bit)) <= '0';
+                           elsif(num_byte = to_unsigned(6,4))then
+                               r_data_6(to_integer(num_bit)) <= '0';
+                           end if;
+                        end if;
+                        if(num_bit = to_unsigned(0,7))then
+                            state <= S_mas_ACK1;
+                        end if;
+                    end if;
                     
                 when S_mas_ACK1 =>
-                    
+                    if(scl_internal = '0' and  CounterClock_1 = 50)then
+                        sda_internal <= '0';
+                        sda_en   <= '1';
+                    end if;
+                    if(old_scl = '1'  and  scl_internal = '0')then
+                        if(num_byte >= unsigned(num_data_rx))then
+                            state <= S_END;
+                        else
+                            state <= S_READ;
+                            sda_en   <= '0';
+                            num_byte <= num_byte + 1;
+                            num_bit  <= to_unsigned(7,7);
+                        end if;
+                    end if;
                 when S_END =>
-                    state <= S_IDEL;
+                    scl_internal <= '0';
+                    if(scl_internal = '1' and  CounterClock_1 >= 50)then
+                        state        <= S_IDEL;
+                        sda_internal <= '1';
+                        scl_en       <= '0';
+                        sda_en       <= '0';
+                    end if;
                 when others =>
                     state <= S_IDEL;
             end case;
