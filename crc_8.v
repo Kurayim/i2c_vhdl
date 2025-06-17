@@ -62,7 +62,8 @@ module crc_8(
                     if(old_run == 0 & run == 1)begin
                         val   <= val ^ data_in;
                         state <= CAL_CRC;
-                        
+                        ready <= 0;
+                        num   <= 0;
                     end
                 end
                 CAL_CRC:begin
