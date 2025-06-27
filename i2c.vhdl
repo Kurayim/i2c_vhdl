@@ -8,14 +8,14 @@
 -- Project Name: 
 -- Target Devices: 
 -- Tool Versions: 
--- Description:  
+-- Description: 
 -- 
 -- Dependencies: 
 -- 
 -- Revision:
 -- Revision 0.01 - File Created
 -- Additional Comments:
---    
+-- 
 ----------------------------------------------------------------------------------
 
 
@@ -57,9 +57,9 @@ entity i2c is
            r_data_6     : out   STD_LOGIC_VECTOR (7 downto 0);
            error_ack    : out   STD_LOGIC;
            busy         : out   STD_LOGIC;
+           ready_data   : out   STD_LOGIC;
            scl          : out   STD_LOGIC;
-           sda          : inout STD_LOGIC;
-           led          : out   std_logic := '1'
+           sda          : inout STD_LOGIC
            );
 end i2c;
 
@@ -76,12 +76,12 @@ architecture Behavioral of i2c is
     signal sda_en          : std_logic   := '0';
     signal old_scl         : std_logic   := '0';
     signal old_run         : std_logic   := '0';
-    signal r_data_1_ila      : std_logic_vector (7 downto 0);
-    signal r_data_2_ila      : std_logic_vector (7 downto 0);
-    signal r_data_3_ila      : std_logic_vector (7 downto 0);
-    signal r_data_4_ila      : std_logic_vector (7 downto 0);
-    signal r_data_5_ila      : std_logic_vector (7 downto 0);
-    signal r_data_6_ila      : std_logic_vector (7 downto 0);
+    signal r_data_1_ila    : std_logic_vector (7 downto 0);
+    signal r_data_2_ila    : std_logic_vector (7 downto 0);
+    signal r_data_3_ila    : std_logic_vector (7 downto 0);
+    signal r_data_4_ila    : std_logic_vector (7 downto 0);
+    signal r_data_5_ila    : std_logic_vector (7 downto 0);
+    signal r_data_6_ila    : std_logic_vector (7 downto 0);
 
     
 
@@ -90,17 +90,17 @@ architecture Behavioral of i2c is
     signal state : state_type := S_IDEL;
     
     
-    component ila_0
-    port (
-        clk    : in  std_logic;
-        probe0 : in  std_logic_vector(7 downto 0);
-        probe1 : in  std_logic_vector(7 downto 0);
-        probe2 : in  std_logic_vector(7 downto 0);
-        probe3 : in  std_logic_vector(7 downto 0);
-        probe4 : in  std_logic_vector(7 downto 0);
-        probe5 : in  std_logic_vector(7 downto 0)
-    );
-end component;
+--    component ila_0
+--    port (
+--        clk    : in  std_logic;
+--        probe0 : in  std_logic_vector(7 downto 0);
+--        probe1 : in  std_logic_vector(7 downto 0);
+--        probe2 : in  std_logic_vector(7 downto 0);
+--        probe3 : in  std_logic_vector(7 downto 0);
+--        probe4 : in  std_logic_vector(7 downto 0);
+--        probe5 : in  std_logic_vector(7 downto 0)
+--    );
+--    end component;
     
     
     
@@ -108,16 +108,16 @@ end component;
     
 begin
     
-    ila_inst : ila_0
-   port map (
-     clk    => clock,
-     probe0 => r_data_1_ila,
-     probe1 => r_data_2_ila,
-     probe2 => r_data_3_ila,
-     probe3 => r_data_4_ila,
-     probe4 => r_data_5_ila,
-     probe5 => r_data_6_ila
-   );
+--    ila_inst : ila_0
+--   port map (
+--     clk    => clock,
+--     probe0 => r_data_1_ila,
+--     probe1 => r_data_2_ila,
+--     probe2 => r_data_3_ila,
+--     probe3 => r_data_4_ila,
+--     probe4 => r_data_5_ila,
+--     probe5 => r_data_6_ila
+--   );
    
    
    
@@ -138,41 +138,38 @@ begin
             old_scl <= scl_internal;
             old_run <= run;
             
-            led <= '0';
         
             if(reset = '0')then
                 state <= S_IDEL;
             end if;
             
---            if(run = '1')then
---                led <= '1';
---            else
---                led <= '0';
---            end if;
-           led <= '1';
+
             
             case(state) is
                 when S_IDEL =>
                     state <= S_READY;
                     scl_en <= '0';
                     sda_en <= '0'; 
-                    sda_internal <= '0';
+                    sda_internal <= '1';
                     busy   <= '0';                   
                     
                 when S_READY =>
                     if(old_run = '0'  and  run = '1')then
                         state   <= S_START;
+                        ready_data <= '0';
                         num_bit <= to_unsigned(BIT_ADDRESS,7);
                     end if;
                     
                 when S_START =>
                     busy         <= '1';
-                    r_data_1_ila     <= (others => '0');
-                    r_data_2_ila     <= (others => '0');
-                    r_data_3_ila     <= (others => '0');
-                    r_data_4_ila     <= (others => '0');
-                    r_data_5_ila     <= (others => '0');
-                    r_data_6_ila     <= (others => '0');
+                    if(rw = '1')then
+                        r_data_1_ila     <= (others => '0');
+                        r_data_2_ila     <= (others => '0');
+                        r_data_3_ila     <= (others => '0');
+                        r_data_4_ila     <= (others => '0');
+                        r_data_5_ila     <= (others => '0');
+                        r_data_6_ila     <= (others => '0');
+                    end if;
                     cal_zero     <= (others => '0');
                     cal_one      <= (others => '0');
                     error_ack    <= '0';
@@ -229,7 +226,6 @@ begin
                     end if;
                     
                 when S_WRITE =>
-                    led <= '1';
                     if(scl_internal = '0' and  CounterClock_1 = 50)then
                         
                         num_bit <= num_bit - 1;
@@ -353,6 +349,9 @@ begin
                         sda_internal <= '1';
                         scl_en       <= '0';
                         sda_en       <= '0';
+                        if(rw = '1')then
+                            ready_data <= '1';
+                        end if;
                     end if;
                 when others =>
                     state <= S_IDEL;
