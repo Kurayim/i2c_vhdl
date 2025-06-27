@@ -35,29 +35,14 @@ module crc_8(
     parameter BITS = 8;
     parameter POLY = 8'h31;
     
-    
 
-    
-    
     reg[7:0] val = 8'hff;
     reg[7:0] num = 0;
     reg[1:0] state   = IDLE;
     reg old_run      = 0;
     
 
-    
-//    ila_1 uut_1(
-//        .clk(clk),
-//        .probe0(state),
-//        .probe1(crc),
-//        .probe2(ready),
-//        .probe3(run),
-//        .probe4(num),
-//        .probe5(data_in)
-//    );
-    
-    
-    
+
     
     always@(posedge clk)begin
         
