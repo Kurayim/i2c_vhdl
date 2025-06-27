@@ -59,9 +59,6 @@ architecture Behavioral of set_sht3x is
         probe8 : in STD_LOGIC_VECTOR (7  downto 0);
         probe9 : in STD_LOGIC_VECTOR (7  downto 0);
         probe10 : in STD_LOGIC_VECTOR (31  downto 0);
-        probe11 : in STD_LOGIC_VECTOR (31  downto 0);
-        probe12 : in STD_LOGIC_VECTOR (31  downto 0);
-        probe13 : in STD_LOGIC_VECTOR (31  downto 0);
         probe14 : in STD_LOGIC_VECTOR (7  downto 0);
         probe15 : in STD_LOGIC_VECTOR (7  downto 0)
     );
