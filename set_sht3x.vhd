@@ -872,16 +872,7 @@ begin
 
 
 
---    eep : process(clock)
---    begin
---        if(rising_edge(clock))then
---            if(ex_signal = '1')then
---                led_sig <= '0';
---            else
---                led_sig <= '1';
---            end if;        
---        end if;
---    end process;
+
 
 
 
