@@ -21,19 +21,22 @@
 
 
 module crc_8(
-    input wire clk,
-    input wire rst,
-    input wire run,
-    input wire[7:0] data_in,
-    output reg ready,
-    output[7:0] crc
+    input  wire clk,
+    input  wire rst,
+    input  wire run,
+    input  wire [7:0] data_in,
+    output reg  ready,
+    output reg  [7:0] crc
     );
     
     
     
-    parameter IDLE = 2'b00, XOR_ASS = 2'b01, CAL_CRC = 2'b10;
+    parameter IDLE = 2'b00, XOR_ASS = 2'b01, CAL_CRC = 2'b10 ,END = 2'b11;
     parameter BITS = 8;
     parameter POLY = 8'h31;
+    
+    
+
     
     
     reg[7:0] val = 8'hff;
@@ -43,12 +46,27 @@ module crc_8(
     
 
     
+//    ila_1 uut_1(
+//        .clk(clk),
+//        .probe0(state),
+//        .probe1(crc),
+//        .probe2(ready),
+//        .probe3(run),
+//        .probe4(num),
+//        .probe5(data_in)
+//    );
+    
+    
+    
     
     always@(posedge clk)begin
         
         old_run <= run;
         if(rst == 0)begin
-            state <= IDLE;
+            val   <= 8'hff;
+            num   <= 8'h00;
+            state <= XOR_ASS;
+            ready <= 0;
         end
         else begin
             case(state)
@@ -56,6 +74,7 @@ module crc_8(
                     val   <= 8'hff;
                     num   <= 8'h00;
                     state <= XOR_ASS;
+                    ready <= 0;
                 end
                 XOR_ASS:begin
                     
@@ -72,9 +91,13 @@ module crc_8(
                         val <= {val[BITS-2:0], 1'b0} ^ (val[BITS-1] ? POLY : 0);
                     end
                     else begin
-                        state <= XOR_ASS;
-                        ready <= 1;
+                        state <= END;
+                        crc <= val;
                     end
+                end
+                END:begin
+                    ready <= 1;
+                    state <= XOR_ASS;
                 end
                 default: state <= IDLE;
             endcase
@@ -82,7 +105,6 @@ module crc_8(
     end
     
     
-    assign crc = val;
     
     
 endmodule
