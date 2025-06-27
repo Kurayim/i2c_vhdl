@@ -2,7 +2,7 @@
 -- Company: 
 -- Engineer: 
 -- 
--- Create Date: 06/06/2025 06:06:55 AM
+-- Create Date: 06/23/2025 11:53:37 PM
 -- Design Name: 
 -- Module Name: set_sht3x - Behavioral
 -- Project Name: 
@@ -23,7 +23,6 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use ieee.numeric_std.all;
 
-
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
 --use IEEE.NUMERIC_STD.ALL;
@@ -34,17 +33,40 @@ use ieee.numeric_std.all;
 --use UNISIM.VComponents.all;
 
 entity set_sht3x is
-    port(clock      :  in       std_logic;
-         reset_push :  in       std_logic;
-         ex_signal  :  in       std_logic;
-         led        :  out      std_logic;
-         scl        :  out      std_logic;
-         sda        :  inout    std_logic
-        );
+    port(
+        clock      :  in       std_logic;
+        reset_push :  in       std_logic;
+        ex_signal  :  in       std_logic;
+        scl        :  out      std_logic;
+        sda        :  inout    std_logic;
+        led        :  out      std_logic
+    );
 end set_sht3x;
 
 architecture Behavioral of set_sht3x is
 
+    component ila_0 
+    port(
+        clk    : in std_logic;
+        probe0 : in std_logic;
+        probe1 : in std_logic;
+        probe2 : in std_logic;
+        probe3 : in std_logic;
+        probe4 : in STD_LOGIC_VECTOR (7  downto 0);
+        probe5 : in STD_LOGIC_VECTOR (7  downto 0);
+        probe6 : in STD_LOGIC_VECTOR (7  downto 0);
+        probe7 : in STD_LOGIC_VECTOR (7  downto 0);
+        probe8 : in STD_LOGIC_VECTOR (7  downto 0);
+        probe9 : in STD_LOGIC_VECTOR (7  downto 0);
+        probe10 : in STD_LOGIC_VECTOR (31  downto 0);
+        probe11 : in STD_LOGIC_VECTOR (31  downto 0);
+        probe12 : in STD_LOGIC_VECTOR (31  downto 0);
+        probe13 : in STD_LOGIC_VECTOR (31  downto 0);
+        probe14 : in STD_LOGIC_VECTOR (7  downto 0);
+        probe15 : in STD_LOGIC_VECTOR (7  downto 0)
+    );
+    end component;
+    
     component i2c
         generic(
             NUM_COUNTER : integer := 250;
@@ -58,29 +80,130 @@ architecture Behavioral of set_sht3x is
            address      : in    STD_LOGIC_VECTOR (10 downto 0);
            num_data_tx  : in    STD_LOGIC_VECTOR (3  downto 0);
            num_data_rx  : in    STD_LOGIC_VECTOR (3  downto 0);
-           w_data_1     : in    STD_LOGIC_VECTOR (7 downto 0);
-           w_data_2     : in    STD_LOGIC_VECTOR (7 downto 0);
-           w_data_3     : in    STD_LOGIC_VECTOR (7 downto 0);
-           w_data_4     : in    STD_LOGIC_VECTOR (7 downto 0);
-           w_data_5     : in    STD_LOGIC_VECTOR (7 downto 0);
-           w_data_6     : in    STD_LOGIC_VECTOR (7 downto 0);
-           r_data_1     : out   STD_LOGIC_VECTOR (7 downto 0);
-           r_data_2     : out   STD_LOGIC_VECTOR (7 downto 0);
-           r_data_3     : out   STD_LOGIC_VECTOR (7 downto 0);
-           r_data_4     : out   STD_LOGIC_VECTOR (7 downto 0);
-           r_data_5     : out   STD_LOGIC_VECTOR (7 downto 0);
-           r_data_6     : out   STD_LOGIC_VECTOR (7 downto 0);
+           w_data_1     : in    STD_LOGIC_VECTOR (7  downto 0);
+           w_data_2     : in    STD_LOGIC_VECTOR (7  downto 0);
+           w_data_3     : in    STD_LOGIC_VECTOR (7  downto 0);
+           w_data_4     : in    STD_LOGIC_VECTOR (7  downto 0);
+           w_data_5     : in    STD_LOGIC_VECTOR (7  downto 0);
+           w_data_6     : in    STD_LOGIC_VECTOR (7  downto 0);
+           r_data_1     : out   STD_LOGIC_VECTOR (7  downto 0);
+           r_data_2     : out   STD_LOGIC_VECTOR (7  downto 0);
+           r_data_3     : out   STD_LOGIC_VECTOR (7  downto 0);
+           r_data_4     : out   STD_LOGIC_VECTOR (7  downto 0);
+           r_data_5     : out   STD_LOGIC_VECTOR (7  downto 0);
+           r_data_6     : out   STD_LOGIC_VECTOR (7  downto 0);
            error_ack    : out   STD_LOGIC;
            busy         : out   STD_LOGIC;
+           ready_data   : out   std_logic;
            scl          : out   STD_LOGIC;
-           sda          : inout STD_LOGIC;
-           led          : out   std_logic := '1'
-            
+           sda          : inout STD_LOGIC
         );
     end component;
     
-    -- Signals to connect to the UUT
     
+        component crc_8
+        port(
+            clk     : in  std_logic;
+            rst     : in  std_logic;
+            run     : in  std_logic;
+            data_in : in  std_logic_vector(7  downto 0);
+            ready   : out std_logic;
+            crc     : out std_logic_vector(7  downto 0)
+        );
+    end component;
+    
+    component fixed_to_float
+        port (
+          aclk                   : in std_logic;
+          aresetn                : in std_logic;
+          s_axis_a_tvalid        : in std_logic;
+          s_axis_a_tready        : out std_logic;
+          s_axis_a_tdata         : in std_logic_vector(31 downto 0);
+          m_axis_result_tvalid   : out std_logic;
+          m_axis_result_tready   : in std_logic;
+          m_axis_result_tdata    : out std_logic_vector(31 downto 0)
+        );
+     end component;
+     
+     component add_subtract 
+        port (
+            aclk                      : in std_logic;
+            aresetn                   : in std_logic;
+            s_axis_a_tvalid           : in std_logic;
+            s_axis_a_tready           : out std_logic;
+            s_axis_a_tdata            : in std_logic_vector(31 downto 0);
+            s_axis_b_tvalid           : in std_logic;
+            s_axis_b_tready           : out std_logic;
+            s_axis_b_tdata            : in std_logic_vector(31 downto 0);
+            s_axis_operation_tvalid   : in std_logic;
+            s_axis_operation_tready   : out std_logic;
+            s_axis_operation_tdata    : in std_logic_vector(7 downto 0);
+            m_axis_result_tvalid      : out std_logic;
+            m_axis_result_tready      : in std_logic;
+            m_axis_result_tdata       : out std_logic_vector(31 downto 0)
+        );
+        end component;
+        
+     component multiply 
+        port (
+            aclk                      : in std_logic;
+            aresetn                   : in std_logic;
+            s_axis_a_tvalid           : in std_logic;
+            s_axis_a_tready           : out std_logic;
+            s_axis_a_tdata            : in std_logic_vector(31 downto 0);
+            s_axis_b_tvalid           : in std_logic;
+            s_axis_b_tready           : out std_logic;
+            s_axis_b_tdata            : in std_logic_vector(31 downto 0);
+            m_axis_result_tvalid      : out std_logic;
+            m_axis_result_tready      : in std_logic;
+            m_axis_result_tdata       : out std_logic_vector(31 downto 0)
+        );
+        end component;   
+        
+        component divide 
+        port (
+            aclk                      : in std_logic;
+            aresetn                   : in std_logic;
+            s_axis_a_tvalid           : in std_logic;
+            s_axis_a_tready           : out std_logic;
+            s_axis_a_tdata            : in std_logic_vector(31 downto 0);
+            s_axis_b_tvalid           : in std_logic;
+            s_axis_b_tready           : out std_logic;
+            s_axis_b_tdata            : in std_logic_vector(31 downto 0);
+            m_axis_result_tvalid      : out std_logic;
+            m_axis_result_tready      : in std_logic;
+            m_axis_result_tdata       : out std_logic_vector(31 downto 0)
+        );
+        end component;
+       
+
+    
+    
+    
+    signal led_sig  :   std_logic;
+    
+    type controller_type is (CU_IDEL, CU_START, CU_IIC, CU_CRC, CU_CALCULATE, CU_DISPLAY, CU_END);
+    signal cu_state : controller_type := CU_IDEL; 
+
+    type iic_type is (IIC_IDEL, IIC_SEND_COMMAND, IIC_READ_DATA);
+    signal iic_state : iic_type := IIC_IDEL;    
+    
+    
+    type crc_type is (CRC_IDEL, CRC_START, CRC_DATA_1, CRC_DATA_2, CRC_CHECK, CRC_END);
+    signal crc_state : crc_type := CRC_IDEL; 
+    
+    type cal_type is (CAL_IDEL, CAL_START,
+    CAL_RESET_XT, CAL_GIVE_XT, CAL_GET_XT,CAL_RESET_XH, CAL_GIVE_XH, CAL_GET_XH,
+    CAL_MULTI_RESET_T, CAL_MULTI_GIVE_T, CAL_MULTI_GET_T,
+    CAL_DIVID_RESET_T, CAL_DIVID_GIVE_T, CAL_DIVID_GET_T,
+    CAL_SUB_RESET_T, CAL_SUB_GIVE_T, CAL_SUB_GET_T,
+
+    CAL_END);
+    signal cal_state : cal_type := CAL_IDEL; 
+    
+    
+
+
     signal reset_sig         : std_logic := '1';
     signal rw_sig            : std_logic := '0'; -- write = '0'
     signal run_sig           : std_logic := '0';
@@ -99,17 +222,179 @@ architecture Behavioral of set_sht3x is
     signal r_data_4_sig      : std_logic_vector (7 downto 0);
     signal r_data_5_sig      : std_logic_vector (7 downto 0);
     signal r_data_6_sig      : std_logic_vector (7 downto 0);
+    signal crc_temp_sig      : std_logic_vector (15 downto 0);
+    signal crc_humi_sig      : std_logic_vector (15 downto 0);
     signal error_ack_sig     : std_logic;
     signal busy_sig          : std_logic;
-    signal led_sig           : std_logic;
     signal old_ex_signal     : std_logic;
     signal counter_time      : unsigned (20 downto 0) := (others => '0');
-    signal let_rx            : std_logic := '0';
+    signal let_rx            : std_logic;
+    signal ready_data_sig    : std_logic;
+    signal rst_crc           : std_logic;
+    signal run_crc           : std_logic;
+    signal data_in_crc_1       : std_logic_vector (7 downto 0);
+    signal data_in_crc_2       : std_logic_vector (7 downto 0);
+    signal ready_crc_1         : std_logic;
+    signal ready_crc_2         : std_logic;
+    signal old_ready_crc_1     : std_logic;
+    signal old_ready_crc_2     : std_logic;
+    signal temp_crc          : std_logic_vector (7 downto 0);
+    signal humi_crc          : std_logic_vector (7 downto 0);
+    signal out_crc_1           : std_logic_vector (7 downto 0);
+    signal out_crc_2         : std_logic_vector (7 downto 0);
+    signal Num_step          : unsigned (3 downto 0);
+    signal Num_step_debug    : std_logic_vector (7 downto 0);
+    signal Num_step_debug_1    : std_logic_vector (7 downto 0);
+    
+    signal old_ready_iic   : std_logic;
+    
+    
+    
+    signal crc_counter_clk    : unsigned (15 downto 0);
+    signal crc_clock          : std_logic;
+    
+    signal cu_requst_iic     : std_logic;
+    signal old_iic_requst   : std_logic;
+    
+    signal iic_respond_cu    : std_logic;
+    signal old_iic_respond   : std_logic;
+
+    signal cu_requst_crc     : std_logic;
+    signal old_crc_requst   : std_logic;
+
+    signal crc_respond_cu    : std_logic;
+    signal old_crc_respond   : std_logic;
+    
+    signal crc_check_ok      : std_logic;
+    
+    
+    
+    signal cu_requst_cal     : std_logic;
+    signal old_cal_requst    : std_logic;
+
+    signal cal_respond_cu    : std_logic;
+    signal old_cal_respond   : std_logic;
+    
+    
+
+
+    signal fix_float_reset         :   std_logic;
+    signal fix_float_valid         :   std_logic;
+    signal fix_float_ready         :   std_logic;
+    signal fix_float_data          :   std_logic_vector (31 downto 0);
+    signal fix_float_result_valid  :   std_logic;
+    signal fix_float_result_ready  :   std_logic;
+    signal fix_float_result_data   :   std_logic_vector (31 downto 0);
+    
+    
+    
+    
+    -- substrac
+    signal sub_reset         :   std_logic;
+    signal sub_a_valid       :   std_logic;
+    signal sub_a_ready       :   std_logic;
+    signal sub_a_data        :   std_logic_vector (31 downto 0);
+    signal sub_b_valid       :   std_logic;
+    signal sub_b_ready       :   std_logic;
+    signal sub_b_data        :   std_logic_vector (31 downto 0);
+    signal sub_oper_valid    :   std_logic;
+    signal sub_oper_ready    :   std_logic;
+    signal sub_oper_data     :   std_logic_vector (7 downto 0);
+    signal sub_result_valid  :   std_logic;
+    signal sub_result_ready  :   std_logic;
+    signal sub_result_data   :   std_logic_vector (31 downto 0);
+    
+    -- divide
+    signal divi_reset         :   std_logic;
+    signal divi_a_valid       :   std_logic;
+    signal divi_a_ready       :   std_logic;
+    signal divi_a_data        :   std_logic_vector (31 downto 0);
+    signal divi_b_valid       :   std_logic;
+    signal divi_b_ready       :   std_logic;
+    signal divi_b_data        :   std_logic_vector (31 downto 0);
+    signal divi_result_valid  :   std_logic;
+    signal divi_result_ready  :   std_logic;
+    signal divi_result_data   :   std_logic_vector (31 downto 0);
+    
+    -- multiply
+    signal multi_reset         :   std_logic;
+    signal multi_a_valid       :   std_logic;
+    signal multi_a_ready       :   std_logic;
+    signal multi_a_data        :   std_logic_vector (31 downto 0);
+    signal multi_b_valid       :   std_logic;
+    signal multi_b_ready       :   std_logic;
+    signal multi_b_data        :   std_logic_vector (31 downto 0);
+    signal multi_result_valid  :   std_logic;
+    signal multi_result_ready  :   std_logic;
+    signal multi_result_data   :   std_logic_vector (31 downto 0);
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    signal tempratuer_bits          :   std_logic_vector (31 downto 0);
+    signal humidity_bits            :   std_logic_vector (31 downto 0);
+    
+    signal tempratuer_bits_float    :   std_logic_vector (31 downto 0);
+    signal humidity_bits_float      :   std_logic_vector (31 downto 0);
+    
+    
+    constant const_float_45    : std_logic_vector := x"c2340000";
+    constant const_float_175   : std_logic_vector := x"432f0000";
+    constant const_float_100   : std_logic_vector := x"42c80000";
+    constant const_float_65535 : std_logic_vector := x"477fff00";
+
+
+
+
+
+
+
+
+
+
+
+
 
 begin
+
+        led <= led_sig;
+
+    uut : ila_0 
+    port map(
+        clk     => clock,
+        probe0  => cu_requst_crc,
+        probe1  => cu_requst_cal,
+        probe2  => cu_requst_iic,
+        probe3  => cal_respond_cu,
+        probe4  => r_data_1_sig,
+        probe5  => r_data_2_sig,
+        probe6  => r_data_3_sig,
+        probe7  => r_data_4_sig,
+        probe8  => r_data_5_sig,
+        probe9  => r_data_6_sig,
+        probe10 => tempratuer_bits,
+        probe11 => humidity_bits,
+        probe12 => tempratuer_bits_float,
+        probe13 => humidity_bits_float,
+        probe14 => Num_step_debug,
+        probe15 => Num_step_debug_1
+    );
     
-    -- Instantiate the Unit Under Test (UUT)
-    uut: i2c
+    i2c_0: i2c
         generic map(
             NUM_COUNTER => 250,
             BIT_ADDRESS => 7
@@ -136,76 +421,470 @@ begin
             r_data_6       => r_data_6_sig,
             error_ack      => error_ack_sig,
             busy           => busy_sig,
+            ready_data     => ready_data_sig,
             scl            => scl,
-            sda            => sda,
-            led            => led
+            sda            => sda
+        );
+        
+        
+    crc_1  : crc_8
+        port map(
+            clk     => clock,
+            rst     => rst_crc,
+            run     => run_crc,
+            data_in => data_in_crc_1,
+            ready   => ready_crc_1,
+            crc     => out_crc_1
+        );
+        
+        
+    crc_2  : crc_8
+        port map(
+            clk     => clock,
+            rst     => rst_crc,
+            run     => run_crc,
+            data_in => data_in_crc_2,
+            ready   => ready_crc_2,
+            crc     => out_crc_2
+        );
+        
+        
+    xtl: fixed_to_float
+        port map (
+          aclk                 => clock,
+          aresetn              => fix_float_reset,          --IN
+          s_axis_a_tvalid      => fix_float_valid,          --IN
+          s_axis_a_tready      => fix_float_ready,          --OUT
+          s_axis_a_tdata       => fix_float_data,           --IN
+          m_axis_result_tvalid => fix_float_result_valid,   --OUT
+          m_axis_result_tready => fix_float_result_ready,   --IN
+          m_axis_result_tdata  => fix_float_result_data     --IN
+        );
+        
+       
+     sub: add_subtract 
+        port map (
+            aclk                        => clock,                    
+            aresetn                     => sub_reset,              
+            s_axis_a_tvalid             => sub_a_valid,    
+            s_axis_a_tready             => sub_a_ready,
+            s_axis_a_tdata              => sub_a_data,
+            s_axis_b_tvalid             => sub_b_valid,
+            s_axis_b_tready             => sub_b_ready,
+            s_axis_b_tdata              => sub_b_data,
+            s_axis_operation_tvalid     => sub_oper_valid,
+            s_axis_operation_tready     => sub_oper_ready,
+            s_axis_operation_tdata      => sub_oper_data,
+            m_axis_result_tvalid        => sub_result_valid,
+            m_axis_result_tready        => sub_result_ready,
+            m_axis_result_tdata         => sub_result_data
+        );
+        
+     divi: divide 
+        port map (
+            aclk                        => clock,                    
+            aresetn                     => divi_reset,              
+            s_axis_a_tvalid             => divi_a_valid,    
+            s_axis_a_tready             => divi_a_ready,
+            s_axis_a_tdata              => divi_a_data,
+            s_axis_b_tvalid             => divi_b_valid,
+            s_axis_b_tready             => divi_b_ready,
+            s_axis_b_tdata              => divi_b_data,
+            m_axis_result_tvalid        => divi_result_valid,
+            m_axis_result_tready        => divi_result_ready,
+            m_axis_result_tdata         => divi_result_data
         );
 
-    main_pro : process(clock)
+    multi: multiply 
+        port map (
+            aclk                        => clock,                    
+            aresetn                     => multi_reset,              
+            s_axis_a_tvalid             => multi_a_valid,    
+            s_axis_a_tready             => multi_a_ready,
+            s_axis_a_tdata              => multi_a_data,
+            s_axis_b_tvalid             => multi_b_valid,
+            s_axis_b_tready             => multi_b_ready,
+            s_axis_b_tdata              => multi_b_data,
+            m_axis_result_tvalid        => multi_result_valid,
+            m_axis_result_tready        => multi_result_ready,
+            m_axis_result_tdata         => multi_result_data
+        );
+
+
+
+
+
+
+
+
+
+        
+    
+
+    clock_manage : process(clock)
     begin
         if(rising_edge(clock))then
-            old_ex_signal <= ex_signal;
-       --     led <= led_s;
-            run_sig <= '0';
-            if(old_ex_signal = '1'  and  ex_signal = '0')then
-                
---   --             led <= '1';
-                reset_sig <= '1';
-                rw_sig <= '0';
-                run_sig <= '1';
-                address_sig <= "00001000100";
-                num_data_tx_sig <= "0010";
-                
-                
-                w_data_1_sig <= X"2c";
-                w_data_2_sig <= X"06";
---                w_data_3_sig <= X"25";
---                w_data_4_sig <= X"36";
---                w_data_5_sig <= X"47";
---                w_data_6_sig <= X"58";
-
-                let_rx  <= '1';
-                counter_time <= (others => '0');
-                
-            end if;
+            crc_counter_clk <= crc_counter_clk + 1;
             
-            if(let_rx = '1')then
-            counter_time <= counter_time + 1;
-                if(counter_time = to_unsigned(1000000,20))then
-                    let_rx <= '0';
-                    rw_sig <= '1';
-                    run_sig <= '1';
-                    address_sig <= "00001000100";
-                    num_data_rx_sig <= "0110";
+            
+            
+            if(crc_counter_clk >= to_unsigned(50,16))then
+                crc_counter_clk <= (others => '0');
+                if(crc_clock = '1')then
+                    crc_clock <= '0';
+                else
+                    crc_clock <= '1';
                 end if;
             end if;
             
             
-            
-            
-            if(reset_push = '0')then
-    --            led <= '0';
-                reset_sig <= '0';
-                rw_sig <= '1';
-                run_sig <= '0';
-                address_sig <= "00000000000";
-                num_data_tx_sig <= "0000";
-                num_data_rx_sig <= "0000";
-                let_rx  <= '0';
-                
-            end if;
         end if;
-    end process;        
+    end process;
+
+
+
+
+
+  controller : process(clock)
+    begin
+        if(rising_edge(clock))then
+            
+            old_iic_respond <= iic_respond_cu;
+            old_crc_respond <= crc_respond_cu;
+            old_ex_signal   <= ex_signal;
+            
+            case(cu_state) is
+                when CU_IDEL =>
+                    Num_step_debug_1 <= x"00";
+                    led_sig <= '1';
+                    cu_requst_iic <= '0';
+                    cu_requst_crc <= '0';
+                    cu_requst_cal <= '0';
+                    if(old_ex_signal = '1'  and  ex_signal = '0')then
+                        Num_step_debug_1 <= x"01";
+                        cu_state <= CU_START;
+                    end if; 
+                            
+                when CU_START =>
+                    cu_state <= CU_IIC;
+                    Num_step_debug_1 <= x"02";
+                            
+                when CU_IIC =>
+                    Num_step_debug_1 <= x"03";
+                    cu_requst_iic <= '1';
+                    if(old_iic_respond = '0' and iic_respond_cu = '1')then
+                        Num_step_debug_1 <= x"04";
+                        if(error_ack_sig = '1')then
+                            Num_step_debug_1 <= x"05";
+                            cu_state <= CU_IDEL;
+                        else
+                            cu_state <= CU_CRC;
+                            Num_step_debug_1 <= x"06";
+                        end if;
+                        cu_requst_iic <= '0';
+                    end if; 
+                            
+                when CU_CRC =>
+                    cu_requst_crc <= '1';
+                    Num_step_debug_1 <= x"07";
+                    if(old_crc_respond = '0'  and  crc_respond_cu = '1')then
+                        Num_step_debug_1 <= x"08";
+                        cu_requst_crc <= '0';
+                        if(crc_check_ok = '1')then
+                            Num_step_debug_1 <= x"09";
+                            cu_state <= CU_CALCULATE;
+                        else
+                            Num_step_debug_1 <= x"10";
+                            cu_state <= CU_END;
+                        end if;
+                    end if; 
+                
+                when CU_CALCULATE =>
+                    Num_step_debug_1 <= x"11";
+                    cu_requst_cal <= '1';
+                --    led_sig <= '0';
+                    if(old_cal_respond = '0' and  cal_respond_cu = '1')then
+                        Num_step_debug_1 <= x"12";
+                        led_sig <= '0';
+                        cu_requst_cal <= '0';
+                        cu_state <= CU_END;
+                        
+                    end if;
+                    
+                when CU_DISPLAY =>
+                    
+                when CU_END =>
+                    cu_state <= CU_IDEL;
+                when others =>
+                    cu_state <= CU_IDEL;
+            end case;
+
+        end if;
+    end process;
+
+
+
+ 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    iic_unit : process(clock)
+    begin
+        if(rising_edge(clock))then
+            
+            old_iic_requst <= cu_requst_iic;
+            old_ready_iic  <= ready_data_sig;
+            
+            case(iic_state) is
+                when IIC_IDEL =>
+                    address_sig <= "00001000100";
+                    reset_sig <= '1';
+                    iic_state <= IIC_SEND_COMMAND;
+                    Num_step_debug <= x"00";
+                    
+                    
+                when IIC_SEND_COMMAND =>
+                    Num_step_debug <= x"01";
+                    rw_sig          <= '0';
+                    num_data_tx_sig <= std_logic_vector(to_unsigned(2,4));
+                    w_data_1_sig    <= X"2c";
+                    w_data_2_sig    <= X"06";
+                    w_data_3_sig    <= X"00";
+                    w_data_4_sig    <= X"00";
+                    w_data_5_sig    <= X"00";
+                    w_data_6_sig    <= X"00";
+                    counter_time    <= (others => '0');
+                    if(old_iic_requst = '0'  and  cu_requst_iic = '1')then
+                        Num_step_debug <= x"02";
+                        iic_state <= IIC_READ_DATA;
+                        iic_respond_cu <= '0';
+                        run_sig <= '1';
+                        
+                    end if;
+                    
+                when IIC_READ_DATA =>
+                    Num_step_debug <= x"03";
+                    counter_time <= counter_time + 1;
+                    run_sig <= '0';
+                    if(old_ready_iic = '0'  and  ready_data_sig = '1')then
+                        Num_step_debug <= x"04";
+                        iic_state <= IIC_IDEL;
+                        iic_respond_cu <= '1';
+                    elsif(counter_time = to_unsigned(1000000,20))then
+                        Num_step_debug <= x"05";
+                        rw_sig          <= '1';
+                        run_sig         <= '1';
+                        address_sig     <= "00001000100";
+                        num_data_rx_sig <= "0110";
+                        counter_time    <= (others => '0');
+                    end if;
+                    
+                when others =>
+                    iic_state <= IIC_IDEL;
+            end case;
+        end if;
+    end process;
+    
+    
+    
+    
+
+    crc_unit : process(clock)
+    begin
+        if(rising_edge(clock))then
+            old_crc_requst <= cu_requst_crc;
+            old_ready_crc_1  <= ready_crc_1;
+            old_ready_crc_2  <= ready_crc_2;
+            
+            case(crc_state) is
+                when CRC_IDEL =>
+                    crc_state <= CRC_START;
+                    run_crc     <= '0';
+                    rst_crc     <= '0';
+                    
+                when CRC_START =>
+                    if(old_crc_requst = '0'  and  cu_requst_crc = '1')then
+                        crc_state      <= CRC_DATA_1;
+                        crc_respond_cu <= '0';
+                        crc_check_ok   <= '0';
+                        rst_crc        <= '1';
+                        run_crc        <= '1';
+                        data_in_crc_1  <= r_data_1_sig;
+                        data_in_crc_2  <= r_data_4_sig;
+                    end if;
+                    
+                when CRC_DATA_1 =>
+                    run_crc <= '0';
+                    if(ready_crc_1 = '1'  and   ready_crc_2 <= '1')then
+                        rst_crc        <= '1';
+                        run_crc        <= '1';
+                        data_in_crc_1  <= r_data_2_sig;
+                        data_in_crc_2  <= r_data_5_sig;
+                    end if;
+                    if((old_ready_crc_1 = '1'  and  ready_crc_1 = '0')  or  (old_ready_crc_2 = '1'  and  ready_crc_2 = '0'))then
+                        crc_state      <= CRC_DATA_2;
+                    end if;
+                
+                when CRC_DATA_2 =>
+                    run_crc <= '0';
+                    if(ready_crc_1 = '1'  and   ready_crc_2 <= '1')then
+                        crc_state      <= CRC_CHECK;
+                        rst_crc        <= '1';
+                        run_crc        <= '1';
+                        data_in_crc_1  <= r_data_2_sig;
+                        data_in_crc_2  <= r_data_5_sig;
+                    end if;
+                    
+                when CRC_CHECK =>
+                        crc_state <= CRC_END;
+                    if(out_crc_1 = r_data_3_sig  and  out_crc_2 = r_data_6_sig)then
+                        crc_check_ok   <= '1';
+                    else
+                        crc_check_ok   <= '0';
+                    end if;
+                        
+                when CRC_END =>
+                    crc_respond_cu <= '1';
+                    crc_state      <= CRC_IDEL;    
+                when others =>
+                    crc_state <= CRC_IDEL;
+            end case;
+        end if;    
+    end process;
+    
         
         
         
+    cal_unit : process(clock)
+    begin
+        if(rising_edge(clock))then
+            old_cal_requst <= cu_requst_cal;
+            
+            case(cal_state) is
+                when CAL_IDEL =>
+                    cal_state              <= CAL_START;
+                 --   led_sig <= '1';
+                    fix_float_reset        <= '0';
+                    fix_float_valid        <= '0';
+                    fix_float_data         <= (others => '0');
+                    fix_float_result_ready <= '0';
+                    tempratuer_bits_float  <= (others => '0');
+                    humidity_bits_float    <= (others => '0');
+               --     Num_step_debug <= x"00";
+                      
+                when CAL_START =>
+             --       Num_step_debug <= x"01";
+                    if(old_cal_requst = '0'  and  cu_requst_cal = '1')then
+                        tempratuer_bits(15 downto 8)  <= r_data_1_sig;
+                        tempratuer_bits(7 downto 0)   <= r_data_2_sig;
+                        humidity_bits(15 downto 8)    <= r_data_4_sig;
+                        humidity_bits(7 downto 0)     <= r_data_5_sig;
+                        cal_respond_cu                 <= '0';
+                        cal_state                      <= CAL_RESET_XT;
+                        --led_sig <= '1';
+               --         Num_step_debug <= x"02";
+                    end if;
+                    
+                when CAL_RESET_XT =>
+                --    Num_step_debug <= x"03";
+                    fix_float_reset <= '0';
+                    cal_state       <= CAL_GIVE_XT;
+                    
+                when CAL_GIVE_XT =>
+               --     Num_step_debug <= x"04";
+                    fix_float_reset <= '1';
+                    fix_float_valid <= '1';
+                    fix_float_data  <= tempratuer_bits;
+                    if(fix_float_ready = '1')then
+                 --       Num_step_debug <= x"05";
+                        cal_state <= CAL_GET_XT;
+                    end if;
+                    
+                when CAL_GET_XT =>
+                --    Num_step_debug <= x"06";
+                    if(fix_float_result_valid = '1')then
+                  --      Num_step_debug <= x"07";
+                        fix_float_result_ready <= '1';
+                    --    led_sig <= '0';
+                        tempratuer_bits_float  <= fix_float_result_data;
+                        cal_state              <= CAL_RESET_XH;
+                    end if;
+                when CAL_RESET_XH =>
+                --    Num_step_debug <= x"08";
+                    fix_float_reset        <= '0';
+                    fix_float_valid        <= '0';
+                    fix_float_data         <= (others => '0');
+                    fix_float_result_ready <= '0';
+                    if(fix_float_reset = '0')then
+                 --       Num_step_debug <= x"09";
+                        cal_state              <= CAL_GIVE_XH;
+                    end if;
+                    
+                    
+                when CAL_GIVE_XH =>
+                 --   Num_step_debug <= x"10";
+                    fix_float_reset <= '1';
+                    fix_float_valid <= '1';
+                    fix_float_data  <= humidity_bits;
+                    if(fix_float_ready = '1')then
+                   --     Num_step_debug <= x"12";
+                        cal_state <= CAL_GET_XH;
+                    end if;
+                    
+                when CAL_GET_XH =>
+                  --  Num_step_debug <= x"13";
+                    if(fix_float_result_valid = '1')then
+                    --    Num_step_debug <= x"14";
+                        cal_respond_cu <= '1';
+                        fix_float_result_ready <= '1';
+                        humidity_bits_float    <= fix_float_result_data;
+                        cal_state              <= CAL_END;
+                    end if;
+                    
+                when CAL_END =>
+                --    Num_step_debug <= x"15";
+                    cal_state <= CAL_IDEL;
+                when others =>
+                    cal_state <= CAL_IDEL;
+            end case;
+            
+        end if;
         
+    end process;
+   
+
+
+
+--    eep : process(clock)
+--    begin
+--        if(rising_edge(clock))then
+--            if(ex_signal = '1')then
+--                led_sig <= '0';
+--            else
+--                led_sig <= '1';
+--            end if;        
+--        end if;
+--    end process;
+
+
+
+
+
 
 end Behavioral;
-
-
-
-
-
-
-
