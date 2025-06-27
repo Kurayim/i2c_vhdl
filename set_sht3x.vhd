@@ -59,6 +59,9 @@ architecture Behavioral of set_sht3x is
         probe8 : in STD_LOGIC_VECTOR (7  downto 0);
         probe9 : in STD_LOGIC_VECTOR (7  downto 0);
         probe10 : in STD_LOGIC_VECTOR (31  downto 0);
+        probe11 : in STD_LOGIC_VECTOR (31  downto 0);
+        probe12 : in STD_LOGIC_VECTOR (31  downto 0);
+        probe13 : in STD_LOGIC_VECTOR (31  downto 0);
         probe14 : in STD_LOGIC_VECTOR (7  downto 0);
         probe15 : in STD_LOGIC_VECTOR (7  downto 0)
     );
@@ -375,8 +378,8 @@ begin
         clk     => clock,
         probe0  => cu_requst_crc,
         probe1  => cu_requst_cal,
-        probe2  => cu_requst_iic,
-        probe3  => cal_respond_cu,
+        probe2  => cal_respond_cu,
+        probe3  => crc_check_ok,
         probe4  => r_data_1_sig,
         probe5  => r_data_2_sig,
         probe6  => r_data_3_sig,
@@ -548,12 +551,13 @@ begin
             
             old_iic_respond <= iic_respond_cu;
             old_crc_respond <= crc_respond_cu;
+            old_cal_respond <= cal_respond_cu;
             old_ex_signal   <= ex_signal;
             
             case(cu_state) is
                 when CU_IDEL =>
                     Num_step_debug_1 <= x"00";
-                    led_sig <= '1';
+                   -- led_sig <= '1';
                     cu_requst_iic <= '0';
                     cu_requst_crc <= '0';
                     cu_requst_cal <= '0';
@@ -602,7 +606,7 @@ begin
                 --    led_sig <= '0';
                     if(old_cal_respond = '0' and  cal_respond_cu = '1')then
                         Num_step_debug_1 <= x"12";
-                        led_sig <= '0';
+                       -- led_sig <= '0';
                         cu_requst_cal <= '0';
                         cu_state <= CU_END;
                         
@@ -653,11 +657,11 @@ begin
                     address_sig <= "00001000100";
                     reset_sig <= '1';
                     iic_state <= IIC_SEND_COMMAND;
-                    Num_step_debug <= x"00";
+                --    Num_step_debug <= x"00";
                     
                     
                 when IIC_SEND_COMMAND =>
-                    Num_step_debug <= x"01";
+                --    Num_step_debug <= x"01";
                     rw_sig          <= '0';
                     num_data_tx_sig <= std_logic_vector(to_unsigned(2,4));
                     w_data_1_sig    <= X"2c";
@@ -668,7 +672,7 @@ begin
                     w_data_6_sig    <= X"00";
                     counter_time    <= (others => '0');
                     if(old_iic_requst = '0'  and  cu_requst_iic = '1')then
-                        Num_step_debug <= x"02";
+               --         Num_step_debug <= x"02";
                         iic_state <= IIC_READ_DATA;
                         iic_respond_cu <= '0';
                         run_sig <= '1';
@@ -676,15 +680,15 @@ begin
                     end if;
                     
                 when IIC_READ_DATA =>
-                    Num_step_debug <= x"03";
+               --     Num_step_debug <= x"03";
                     counter_time <= counter_time + 1;
                     run_sig <= '0';
                     if(old_ready_iic = '0'  and  ready_data_sig = '1')then
-                        Num_step_debug <= x"04";
+                 --       Num_step_debug <= x"04";
                         iic_state <= IIC_IDEL;
                         iic_respond_cu <= '1';
                     elsif(counter_time = to_unsigned(1000000,20))then
-                        Num_step_debug <= x"05";
+                 --       Num_step_debug <= x"05";
                         rw_sig          <= '1';
                         run_sig         <= '1';
                         address_sig     <= "00001000100";
@@ -776,17 +780,17 @@ begin
             case(cal_state) is
                 when CAL_IDEL =>
                     cal_state              <= CAL_START;
-                 --   led_sig <= '1';
+                    --led_sig <= '1';
                     fix_float_reset        <= '0';
                     fix_float_valid        <= '0';
                     fix_float_data         <= (others => '0');
                     fix_float_result_ready <= '0';
                     tempratuer_bits_float  <= (others => '0');
                     humidity_bits_float    <= (others => '0');
-               --     Num_step_debug <= x"00";
+                    Num_step_debug <= x"00";
                       
                 when CAL_START =>
-             --       Num_step_debug <= x"01";
+                    Num_step_debug <= x"01";
                     if(old_cal_requst = '0'  and  cu_requst_cal = '1')then
                         tempratuer_bits(15 downto 8)  <= r_data_1_sig;
                         tempratuer_bits(7 downto 0)   <= r_data_2_sig;
@@ -795,59 +799,59 @@ begin
                         cal_respond_cu                 <= '0';
                         cal_state                      <= CAL_RESET_XT;
                         --led_sig <= '1';
-               --         Num_step_debug <= x"02";
+                        Num_step_debug <= x"02";
                     end if;
                     
                 when CAL_RESET_XT =>
-                --    Num_step_debug <= x"03";
+                    Num_step_debug <= x"03";
                     fix_float_reset <= '0';
                     cal_state       <= CAL_GIVE_XT;
                     
                 when CAL_GIVE_XT =>
-               --     Num_step_debug <= x"04";
+                    Num_step_debug <= x"04";
                     fix_float_reset <= '1';
                     fix_float_valid <= '1';
                     fix_float_data  <= tempratuer_bits;
                     if(fix_float_ready = '1')then
-                 --       Num_step_debug <= x"05";
+                        Num_step_debug <= x"05";
                         cal_state <= CAL_GET_XT;
                     end if;
                     
                 when CAL_GET_XT =>
-                --    Num_step_debug <= x"06";
+                    Num_step_debug <= x"06";
                     if(fix_float_result_valid = '1')then
-                  --      Num_step_debug <= x"07";
+                        Num_step_debug <= x"07";
                         fix_float_result_ready <= '1';
                     --    led_sig <= '0';
                         tempratuer_bits_float  <= fix_float_result_data;
                         cal_state              <= CAL_RESET_XH;
                     end if;
                 when CAL_RESET_XH =>
-                --    Num_step_debug <= x"08";
+                    Num_step_debug <= x"08";
                     fix_float_reset        <= '0';
                     fix_float_valid        <= '0';
                     fix_float_data         <= (others => '0');
                     fix_float_result_ready <= '0';
                     if(fix_float_reset = '0')then
-                 --       Num_step_debug <= x"09";
+                        Num_step_debug <= x"09";
                         cal_state              <= CAL_GIVE_XH;
                     end if;
                     
                     
                 when CAL_GIVE_XH =>
-                 --   Num_step_debug <= x"10";
+                    Num_step_debug <= x"10";
                     fix_float_reset <= '1';
                     fix_float_valid <= '1';
                     fix_float_data  <= humidity_bits;
                     if(fix_float_ready = '1')then
-                   --     Num_step_debug <= x"12";
+                        Num_step_debug <= x"12";
                         cal_state <= CAL_GET_XH;
                     end if;
                     
                 when CAL_GET_XH =>
-                  --  Num_step_debug <= x"13";
+                    Num_step_debug <= x"13";
                     if(fix_float_result_valid = '1')then
-                    --    Num_step_debug <= x"14";
+                        Num_step_debug <= x"14";
                         cal_respond_cu <= '1';
                         fix_float_result_ready <= '1';
                         humidity_bits_float    <= fix_float_result_data;
@@ -855,7 +859,7 @@ begin
                     end if;
                     
                 when CAL_END =>
-                --    Num_step_debug <= x"15";
+                    Num_step_debug <= x"15";
                     cal_state <= CAL_IDEL;
                 when others =>
                     cal_state <= CAL_IDEL;
