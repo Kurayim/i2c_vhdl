@@ -213,6 +213,7 @@ architecture Behavioral of set_sht3x is
     CAL_LTX_RESET_T, CAL_LTX_GIVE_T, CAL_LTX_GET_T,
     CAL_DIVID_RESET_H, CAL_DIVID_GIVE_H, CAL_DIVID_GET_H,
     CAL_MULTI_RESET_H, CAL_MULTI_GIVE_H, CAL_MULTI_GET_H,
+    CAL_LTX_RESET_H, CAL_LTX_GIVE_H, CAL_LTX_GET_H,
 
     CAL_END);
     signal cal_state : cal_type := CAL_IDEL; 
@@ -413,7 +414,7 @@ begin
         probe9  => r_data_6_sig,
         probe10 => result_calculate_B,
         probe11 => humidity_bits,
-        probe12 => tempratuer_bits_float,
+        probe12 => result_calculate_A,
         probe13 => humidity_bits_float,
         probe14 => Num_step_debug,
         probe15 => Num_step_debug_1
@@ -1057,8 +1058,7 @@ begin
                         Num_step_debug <= x"37";
                         float_fix_result_ready <= '1';
                         tempratuer_bits        <= float_fix_result_data;
-                        cal_state              <= CAL_END;
-                        cal_respond_cu <= '1';
+                        cal_state              <= CAL_DIVID_RESET_H;
                     end if;
                     
                 
@@ -1068,36 +1068,98 @@ begin
                 
  
                 when CAL_DIVID_RESET_H =>
-                    Num_step_debug <= x"20";
+                    Num_step_debug <= x"38";
                     divi_reset <= '0';
                     if(divi_reset = '0')then
-                        Num_step_debug <= x"21";
-                        cal_state <= CAL_DIVID_GIVE_T;
+                        Num_step_debug <= x"39";
+                        result_calculate_B  <= (others => '0');
+                        result_calculate_A  <= (others => '0');
+                        cal_state           <= CAL_DIVID_GIVE_H;
                     end if;
                 when CAL_DIVID_GIVE_H =>
-                    Num_step_debug <= x"22";
-                    result_calculate_B  <= (others => '0');
+                    Num_step_debug <= x"40";
                     divi_reset          <= '1';
                     divi_a_valid        <= '1';
                     divi_b_valid        <= '1';
-                    divi_a_data         <= result_calculate_A;
+                    divi_a_data         <= humidity_bits_float;
                     divi_b_data         <= const_float_65535;
                     if(divi_a_ready = '1'  and  divi_b_ready = '1')then
-                        Num_step_debug <= x"23";
-                        cal_state <= CAL_DIVID_GET_T;
+                        Num_step_debug <= x"41";
+                        cal_state <= CAL_DIVID_GET_H;
                     end if;
                 when CAL_DIVID_GET_H =>
-                    Num_step_debug <= x"24";
+                    Num_step_debug <= x"42";
                     if(divi_result_valid = '1')then
-                        Num_step_debug <= x"25";
+                        Num_step_debug <= x"43";
                         divi_result_ready <= '1';
-                        result_calculate_B <= divi_result_data;
-                        cal_state          <= CAL_SUB_RESET_T;
+                        result_calculate_A <= divi_result_data;
+                        --cal_state          <= CAL_MULTI_RESET_H;
+                        cal_state          <= CAL_END;
+                        cal_respond_cu <= '1';
                     end if;
                 
                 
                 
                 
+                when CAL_MULTI_RESET_H =>
+                    Num_step_debug <= x"44";
+                    multi_reset <= '0';
+                    if(multi_reset = '0')then
+                        Num_step_debug <= x"45";
+                        cal_state <= CAL_MULTI_GIVE_H;
+                    end if;
+                when CAL_MULTI_GIVE_H =>
+                    Num_step_debug <= x"46";
+                    result_calculate_B  <= (others => '0');
+                    multi_reset         <= '1';
+                    multi_a_valid       <= '1';
+                    multi_b_valid       <= '1';
+                    multi_a_data        <= result_calculate_A;
+                    multi_b_data        <= const_float_100;
+                    if(multi_a_ready = '1'  and  multi_b_ready = '1')then
+                        Num_step_debug <= x"47";
+                        cal_state <= CAL_MULTI_GET_H;
+                    end if;
+                    
+                when CAL_MULTI_GET_H =>
+                    Num_step_debug <= x"48";
+                    if(multi_result_valid = '1')then
+                        Num_step_debug <= x"49";
+                        result_calculate_B <= multi_result_data;
+                        multi_result_ready <= '1';
+                        cal_state          <= CAL_LTX_RESET_H;
+                    end if;
+                
+                
+                
+                
+                when CAL_LTX_RESET_H =>
+                    Num_step_debug <= x"50";
+                    float_fix_reset <= '0';
+                    if(float_fix_reset <= '0')then
+                        Num_step_debug <= x"51";
+                        cal_state <= CAL_LTX_GIVE_H;
+                    end if;     
+                when CAL_LTX_GIVE_H =>
+                    Num_step_debug <= x"52";
+                    humidity_bits <= (others => '0');
+                    float_fix_reset <= '1';
+                    float_fix_valid <= '1';
+                    float_fix_data  <= result_calculate_B;
+                    if(float_fix_ready = '1')then
+                        Num_step_debug <= x"53";
+                        cal_state <= CAL_LTX_GET_H;
+                    end if;
+                    
+                when CAL_LTX_GET_H =>
+                    Num_step_debug <= x"54";
+                    if(float_fix_result_valid = '1')then
+                        Num_step_debug <= x"55";
+                        float_fix_result_ready <= '1';
+                        humidity_bits        <= float_fix_result_data;
+                        cal_state              <= CAL_END;
+                        --cal_respond_cu <= '1';
+                    end if;
                 
                 
                 
