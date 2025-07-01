@@ -137,7 +137,7 @@ architecture Behavioral of set_sht3x is
             s_axis_b_tdata            : in std_logic_vector(31 downto 0);
             s_axis_operation_tvalid   : in std_logic;
             s_axis_operation_tready   : out std_logic;
-            s_axis_operation_tdata    : in std_logic_vector(7 downto 0);
+            s_axis_operation_tdata    : in std_logic_vector(5 downto 0);
             m_axis_result_tvalid      : out std_logic;
             m_axis_result_tready      : in std_logic;
             m_axis_result_tdata       : out std_logic_vector(31 downto 0)
@@ -175,6 +175,19 @@ architecture Behavioral of set_sht3x is
             m_axis_result_tdata       : out std_logic_vector(31 downto 0)
         );
         end component;
+        
+        component float_to_fixed 
+        port (
+          aclk                   : in std_logic;
+          aresetn                : in std_logic;
+          s_axis_a_tvalid        : in std_logic;
+          s_axis_a_tready        : out std_logic;
+          s_axis_a_tdata         : in std_logic_vector(31 downto 0);
+          m_axis_result_tvalid   : out std_logic;
+          m_axis_result_tready   : in std_logic;
+          m_axis_result_tdata    : out std_logic_vector(31 downto 0)
+        );
+        end component;
        
 
     
@@ -197,6 +210,7 @@ architecture Behavioral of set_sht3x is
     CAL_MULTI_RESET_T, CAL_MULTI_GIVE_T, CAL_MULTI_GET_T,
     CAL_DIVID_RESET_T, CAL_DIVID_GIVE_T, CAL_DIVID_GET_T,
     CAL_SUB_RESET_T, CAL_SUB_GIVE_T, CAL_SUB_GET_T,
+    CAL_LTX_RESET_T, CAL_LTX_GIVE_T, CAL_LTX_GET_T,
 
     CAL_END);
     signal cal_state : cal_type := CAL_IDEL; 
@@ -277,7 +291,7 @@ architecture Behavioral of set_sht3x is
     
     
 
-
+    -- fix to float
     signal fix_float_reset         :   std_logic;
     signal fix_float_valid         :   std_logic;
     signal fix_float_ready         :   std_logic;
@@ -286,8 +300,14 @@ architecture Behavioral of set_sht3x is
     signal fix_float_result_ready  :   std_logic;
     signal fix_float_result_data   :   std_logic_vector (31 downto 0);
     
-    
-    
+    -- float to fix
+    signal float_fix_reset         :   std_logic;
+    signal float_fix_valid         :   std_logic;
+    signal float_fix_ready         :   std_logic;
+    signal float_fix_data          :   std_logic_vector (31 downto 0);
+    signal float_fix_result_valid  :   std_logic;
+    signal float_fix_result_ready  :   std_logic;
+    signal float_fix_result_data   :   std_logic_vector (31 downto 0);
     
     -- substrac
     signal sub_reset         :   std_logic;
@@ -299,7 +319,7 @@ architecture Behavioral of set_sht3x is
     signal sub_b_data        :   std_logic_vector (31 downto 0);
     signal sub_oper_valid    :   std_logic;
     signal sub_oper_ready    :   std_logic;
-    signal sub_oper_data     :   std_logic_vector (7 downto 0);
+    signal sub_oper_data     :   std_logic_vector (5 downto 0);
     signal sub_result_valid  :   std_logic;
     signal sub_result_ready  :   std_logic;
     signal sub_result_data   :   std_logic_vector (31 downto 0);
@@ -351,6 +371,9 @@ architecture Behavioral of set_sht3x is
     signal tempratuer_bits_float    :   std_logic_vector (31 downto 0);
     signal humidity_bits_float      :   std_logic_vector (31 downto 0);
     
+    signal result_calculate_A       :   std_logic_vector (31 downto 0);
+    signal result_calculate_B       :   std_logic_vector (31 downto 0);
+    
     
     constant const_float_45    : std_logic_vector := x"c2340000";
     constant const_float_175   : std_logic_vector := x"432f0000";
@@ -386,7 +409,7 @@ begin
         probe7  => r_data_4_sig,
         probe8  => r_data_5_sig,
         probe9  => r_data_6_sig,
-        probe10 => tempratuer_bits,
+        probe10 => result_calculate_B,
         probe11 => humidity_bits,
         probe12 => tempratuer_bits_float,
         probe13 => humidity_bits_float,
@@ -465,52 +488,62 @@ begin
      sub: add_subtract 
         port map (
             aclk                        => clock,                    
-            aresetn                     => sub_reset,              
-            s_axis_a_tvalid             => sub_a_valid,    
-            s_axis_a_tready             => sub_a_ready,
-            s_axis_a_tdata              => sub_a_data,
-            s_axis_b_tvalid             => sub_b_valid,
-            s_axis_b_tready             => sub_b_ready,
-            s_axis_b_tdata              => sub_b_data,
-            s_axis_operation_tvalid     => sub_oper_valid,
-            s_axis_operation_tready     => sub_oper_ready,
-            s_axis_operation_tdata      => sub_oper_data,
-            m_axis_result_tvalid        => sub_result_valid,
-            m_axis_result_tready        => sub_result_ready,
-            m_axis_result_tdata         => sub_result_data
+            aresetn                     => sub_reset,         --IN   
+            s_axis_a_tvalid             => sub_a_valid,       --IN
+            s_axis_a_tready             => sub_a_ready,       --OUT
+            s_axis_a_tdata              => sub_a_data,        --IN
+            s_axis_b_tvalid             => sub_b_valid,       --IN
+            s_axis_b_tready             => sub_b_ready,       --OUT
+            s_axis_b_tdata              => sub_b_data,        --IN
+            s_axis_operation_tvalid     => sub_oper_valid,    --IN
+            s_axis_operation_tready     => sub_oper_ready,    --OUT
+            s_axis_operation_tdata      => sub_oper_data,     --IN
+            m_axis_result_tvalid        => sub_result_valid,  --OUT
+            m_axis_result_tready        => sub_result_ready,  --IN
+            m_axis_result_tdata         => sub_result_data    --OUT
         );
         
      divi: divide 
         port map (
             aclk                        => clock,                    
-            aresetn                     => divi_reset,              
-            s_axis_a_tvalid             => divi_a_valid,    
-            s_axis_a_tready             => divi_a_ready,
-            s_axis_a_tdata              => divi_a_data,
-            s_axis_b_tvalid             => divi_b_valid,
-            s_axis_b_tready             => divi_b_ready,
-            s_axis_b_tdata              => divi_b_data,
-            m_axis_result_tvalid        => divi_result_valid,
-            m_axis_result_tready        => divi_result_ready,
-            m_axis_result_tdata         => divi_result_data
+            aresetn                     => divi_reset,          --IN
+            s_axis_a_tvalid             => divi_a_valid,        --IN
+            s_axis_a_tready             => divi_a_ready,        --OUT
+            s_axis_a_tdata              => divi_a_data,         --IN
+            s_axis_b_tvalid             => divi_b_valid,        --IN
+            s_axis_b_tready             => divi_b_ready,        --OUT
+            s_axis_b_tdata              => divi_b_data,         --IN
+            m_axis_result_tvalid        => divi_result_valid,   --OUT
+            m_axis_result_tready        => divi_result_ready,   --IN
+            m_axis_result_tdata         => divi_result_data     --OUT
         );
 
     multi: multiply 
         port map (
-            aclk                        => clock,                    
-            aresetn                     => multi_reset,              
-            s_axis_a_tvalid             => multi_a_valid,    
-            s_axis_a_tready             => multi_a_ready,
-            s_axis_a_tdata              => multi_a_data,
-            s_axis_b_tvalid             => multi_b_valid,
-            s_axis_b_tready             => multi_b_ready,
-            s_axis_b_tdata              => multi_b_data,
-            m_axis_result_tvalid        => multi_result_valid,
-            m_axis_result_tready        => multi_result_ready,
-            m_axis_result_tdata         => multi_result_data
+            aclk                        => clock,                           
+            aresetn                     => multi_reset,         --IN     
+            s_axis_a_tvalid             => multi_a_valid,       --IN
+            s_axis_a_tready             => multi_a_ready,       --OUT
+            s_axis_a_tdata              => multi_a_data,        --IN
+            s_axis_b_tvalid             => multi_b_valid,       --IN
+            s_axis_b_tready             => multi_b_ready,       --OUT
+            s_axis_b_tdata              => multi_b_data,        --IN
+            m_axis_result_tvalid        => multi_result_valid,  --OUT
+            m_axis_result_tready        => multi_result_ready,  --IN
+            m_axis_result_tdata         => multi_result_data    --OUT
         );
 
-
+      ltx: float_to_fixed
+        port map (
+          aclk                 => clock,
+          aresetn              => float_fix_reset,          --IN
+          s_axis_a_tvalid      => float_fix_valid,          --IN
+          s_axis_a_tready      => float_fix_ready,          --OUT
+          s_axis_a_tdata       => float_fix_data,           --IN
+          m_axis_result_tvalid => float_fix_result_valid,   --OUT
+          m_axis_result_tready => float_fix_result_ready,   --IN
+          m_axis_result_tdata  => float_fix_result_data     --OUT
+        );
 
 
 
@@ -780,13 +813,42 @@ begin
             case(cal_state) is
                 when CAL_IDEL =>
                     cal_state              <= CAL_START;
-                    --led_sig <= '1';
                     fix_float_reset        <= '0';
                     fix_float_valid        <= '0';
                     fix_float_data         <= (others => '0');
                     fix_float_result_ready <= '0';
                     tempratuer_bits_float  <= (others => '0');
                     humidity_bits_float    <= (others => '0');
+                    --
+                    multi_reset            <= '0';
+                    multi_a_valid          <= '0';
+                    multi_a_data           <= (others => '0');
+                    multi_b_valid          <= '0';
+                    multi_b_data           <= (others => '0');
+                    multi_result_ready     <= '0';
+                    --
+                    divi_reset          <= '0';
+                    divi_a_valid        <= '0';
+                    divi_a_data         <= (others => '0');
+                    divi_b_valid        <= '0';
+                    divi_b_data         <= (others => '0');
+                    divi_result_ready   <= '0';
+                    --
+                    sub_reset           <= '0';
+                    sub_a_valid         <= '0';
+                    sub_a_data          <= (others => '0');
+                    sub_b_valid         <= '0';
+                    sub_b_data          <= (others => '0');
+                    sub_oper_valid      <= '0';
+                    sub_oper_data       <= (others => '0');
+                    sub_result_ready    <= '0';
+                    --
+                    float_fix_reset <= '0';   
+                    float_fix_valid <= '0';  
+                    float_fix_data  <= (others => '0');
+                    float_fix_result_ready <= '0';
+                            
+                    
                     Num_step_debug <= x"00";
                       
                 when CAL_START =>
@@ -852,14 +914,153 @@ begin
                     Num_step_debug <= x"13";
                     if(fix_float_result_valid = '1')then
                         Num_step_debug <= x"14";
-                        cal_respond_cu <= '1';
+                   --     cal_respond_cu <= '1';
                         fix_float_result_ready <= '1';
                         humidity_bits_float    <= fix_float_result_data;
-                        cal_state              <= CAL_END;
+                        cal_state              <= CAL_MULTI_RESET_T;
                     end if;
                     
-                when CAL_END =>
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                when CAL_MULTI_RESET_T =>
                     Num_step_debug <= x"15";
+                    multi_reset <= '0';
+                    if(multi_reset = '0')then
+                        Num_step_debug <= x"16";
+                        cal_state <= CAL_MULTI_GIVE_T;
+                    end if;
+                when CAL_MULTI_GIVE_T =>
+                    Num_step_debug <= x"17";
+                    result_calculate_A  <= (others => '0');
+                    multi_reset         <= '1';
+                    multi_a_valid       <= '1';
+                    multi_b_valid       <= '1';
+                    multi_a_data        <= const_float_175;
+                    multi_b_data        <= tempratuer_bits_float;
+                    if(multi_a_ready = '1'  and  multi_b_ready = '1')then
+                        Num_step_debug <= x"18";
+                        cal_state <= CAL_MULTI_GET_T;
+                    end if;
+                    
+                when CAL_MULTI_GET_T =>
+                    Num_step_debug <= x"18";
+                    if(multi_result_valid = '1')then
+                        Num_step_debug <= x"19";
+                        result_calculate_A <= multi_result_data;
+                        multi_result_ready <= '1';
+                        cal_state          <= CAL_DIVID_RESET_T;
+                    end if;
+
+
+
+
+
+                when CAL_DIVID_RESET_T =>
+                    Num_step_debug <= x"20";
+                    divi_reset <= '0';
+                    if(divi_reset = '0')then
+                        Num_step_debug <= x"21";
+                        cal_state <= CAL_DIVID_GIVE_T;
+                    end if;
+                when CAL_DIVID_GIVE_T =>
+                    Num_step_debug <= x"22";
+                    result_calculate_B  <= (others => '0');
+                    divi_reset          <= '1';
+                    divi_a_valid        <= '1';
+                    divi_b_valid        <= '1';
+                    divi_a_data         <= result_calculate_A;
+                    divi_b_data         <= const_float_65535;
+                    if(divi_a_ready = '1'  and  divi_b_ready = '1')then
+                        Num_step_debug <= x"23";
+                        cal_state <= CAL_DIVID_GET_T;
+                    end if;
+                when CAL_DIVID_GET_T =>
+                    Num_step_debug <= x"24";
+                    if(divi_result_valid = '1')then
+                        Num_step_debug <= x"25";
+                        divi_result_ready <= '1';
+                        result_calculate_B <= divi_result_data;
+                        cal_state          <= CAL_SUB_RESET_T;
+                    end if;
+                
+                
+            
+
+                
+                when CAL_SUB_RESET_T =>
+                    Num_step_debug <= x"26";
+                    sub_reset <= '0';
+                    if(sub_reset = '0')then
+                        Num_step_debug <= x"27";
+                        cal_state <= CAL_SUB_GIVE_T;
+                    end if;
+                
+                when CAL_SUB_GIVE_T =>
+                    Num_step_debug <= x"28";
+                    tempratuer_bits_float <= (others => '0');
+                    sub_reset          <= '1';
+                    sub_a_valid        <= '1';
+                    sub_b_valid        <= '1';
+                    sub_oper_valid     <= '1'; 
+                    sub_a_data         <= result_calculate_B;
+                    sub_b_data         <= const_float_45;
+                    sub_oper_data      <= "000000";
+                    if(sub_a_ready = '1'  and  sub_b_ready = '1')then
+                        Num_step_debug <= x"29";
+                        cal_state <= CAL_SUB_GET_T;
+                    end if;
+                when CAL_SUB_GET_T =>
+                    Num_step_debug <= x"30";
+                    if(sub_result_valid = '1')then
+                        Num_step_debug <= x"31";
+                        sub_result_ready <= '1';
+                        tempratuer_bits_float <= sub_result_data;
+                        cal_state             <= CAL_LTX_RESET_T;
+                    end if;
+                
+                
+                
+                
+                
+                
+                
+                when CAL_LTX_RESET_T =>
+                    float_fix_reset <= '0';
+                    tempratuer_bits <= (others => '0');
+                    if(float_fix_reset <= '0')then
+                        cal_state <= CAL_LTX_GIVE_T;
+                    end if;     
+                when CAL_LTX_GIVE_T =>
+                    tempratuer_bits <= (others => '0');
+                    float_fix_reset <= '1';
+                    float_fix_valid <= '1';
+                    float_fix_data  <= tempratuer_bits_float;
+                    if(float_fix_ready = '1')then
+                        cal_state <= CAL_LTX_GET_T;
+                    end if;
+                    
+                when CAL_LTX_GET_T =>
+                    if(float_fix_result_valid = '1')then
+                        float_fix_result_ready <= '1';
+                        tempratuer_bits        <= float_fix_result_data;
+                        cal_state              <= CAL_END;
+                        cal_respond_cu <= '1';
+                    end if;
+                    
+                
+
+                
+                
+                
+                
+                when CAL_END =>
+                    Num_step_debug <= x"FF";
                     cal_state <= CAL_IDEL;
                 when others =>
                     cal_state <= CAL_IDEL;
@@ -868,10 +1069,6 @@ begin
         end if;
         
     end process;
-   
-
-
-
 
 
 
