@@ -211,6 +211,8 @@ architecture Behavioral of set_sht3x is
     CAL_DIVID_RESET_T, CAL_DIVID_GIVE_T, CAL_DIVID_GET_T,
     CAL_SUB_RESET_T, CAL_SUB_GIVE_T, CAL_SUB_GET_T,
     CAL_LTX_RESET_T, CAL_LTX_GIVE_T, CAL_LTX_GET_T,
+    CAL_DIVID_RESET_H, CAL_DIVID_GIVE_H, CAL_DIVID_GET_H,
+    CAL_MULTI_RESET_H, CAL_MULTI_GIVE_H, CAL_MULTI_GET_H,
 
     CAL_END);
     signal cal_state : cal_type := CAL_IDEL; 
@@ -1031,22 +1033,28 @@ begin
                 
                 
                 when CAL_LTX_RESET_T =>
+                    Num_step_debug <= x"32";
                     float_fix_reset <= '0';
                     tempratuer_bits <= (others => '0');
                     if(float_fix_reset <= '0')then
+                        Num_step_debug <= x"33";
                         cal_state <= CAL_LTX_GIVE_T;
                     end if;     
                 when CAL_LTX_GIVE_T =>
+                    Num_step_debug <= x"34";
                     tempratuer_bits <= (others => '0');
                     float_fix_reset <= '1';
                     float_fix_valid <= '1';
                     float_fix_data  <= tempratuer_bits_float;
                     if(float_fix_ready = '1')then
+                        Num_step_debug <= x"35";
                         cal_state <= CAL_LTX_GET_T;
                     end if;
                     
                 when CAL_LTX_GET_T =>
+                    Num_step_debug <= x"36";
                     if(float_fix_result_valid = '1')then
+                        Num_step_debug <= x"37";
                         float_fix_result_ready <= '1';
                         tempratuer_bits        <= float_fix_result_data;
                         cal_state              <= CAL_END;
@@ -1055,6 +1063,48 @@ begin
                     
                 
 
+                
+                
+                
+ 
+                when CAL_DIVID_RESET_H =>
+                    Num_step_debug <= x"20";
+                    divi_reset <= '0';
+                    if(divi_reset = '0')then
+                        Num_step_debug <= x"21";
+                        cal_state <= CAL_DIVID_GIVE_T;
+                    end if;
+                when CAL_DIVID_GIVE_H =>
+                    Num_step_debug <= x"22";
+                    result_calculate_B  <= (others => '0');
+                    divi_reset          <= '1';
+                    divi_a_valid        <= '1';
+                    divi_b_valid        <= '1';
+                    divi_a_data         <= result_calculate_A;
+                    divi_b_data         <= const_float_65535;
+                    if(divi_a_ready = '1'  and  divi_b_ready = '1')then
+                        Num_step_debug <= x"23";
+                        cal_state <= CAL_DIVID_GET_T;
+                    end if;
+                when CAL_DIVID_GET_H =>
+                    Num_step_debug <= x"24";
+                    if(divi_result_valid = '1')then
+                        Num_step_debug <= x"25";
+                        divi_result_ready <= '1';
+                        result_calculate_B <= divi_result_data;
+                        cal_state          <= CAL_SUB_RESET_T;
+                    end if;
+                
+                
+                
+                
+                
+                
+                
+                
+                
+
+                
                 
                 
                 
