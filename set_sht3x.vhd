@@ -415,7 +415,7 @@ begin
         probe10 => result_calculate_B,
         probe11 => humidity_bits,
         probe12 => result_calculate_A,
-        probe13 => humidity_bits_float,
+        probe13 => tempratuer_bits,
         probe14 => Num_step_debug,
         probe15 => Num_step_debug_1
     );
@@ -1076,7 +1076,7 @@ begin
                         result_calculate_A  <= (others => '0');
                         cal_state           <= CAL_DIVID_GIVE_H;
                     end if;
-                when CAL_DIVID_GIVE_H =>
+                when CAL_DIVID_GIVE_H =>        
                     Num_step_debug <= x"40";
                     divi_reset          <= '1';
                     divi_a_valid        <= '1';
@@ -1093,9 +1093,7 @@ begin
                         Num_step_debug <= x"43";
                         divi_result_ready <= '1';
                         result_calculate_A <= divi_result_data;
-                        --cal_state          <= CAL_MULTI_RESET_H;
-                        cal_state          <= CAL_END;
-                        cal_respond_cu <= '1';
+                        cal_state          <= CAL_MULTI_RESET_H;
                     end if;
                 
                 
@@ -1158,7 +1156,7 @@ begin
                         float_fix_result_ready <= '1';
                         humidity_bits        <= float_fix_result_data;
                         cal_state              <= CAL_END;
-                        --cal_respond_cu <= '1';
+                        cal_respond_cu <= '1';
                     end if;
                 
                 
