@@ -195,6 +195,9 @@ architecture Behavioral of set_sht3x is
     
     signal led_sig  :   std_logic;
     
+
+    
+    
     type controller_type is (CU_IDEL, CU_START, CU_IIC, CU_CRC, CU_CALCULATE, CU_DISPLAY, CU_END);
     signal cu_state : controller_type := CU_IDEL; 
 
@@ -214,7 +217,7 @@ architecture Behavioral of set_sht3x is
     CAL_DIVID_RESET_H, CAL_DIVID_GIVE_H, CAL_DIVID_GET_H,
     CAL_MULTI_RESET_H, CAL_MULTI_GIVE_H, CAL_MULTI_GET_H,
     CAL_LTX_RESET_H, CAL_LTX_GIVE_H, CAL_LTX_GET_H,
-
+    EXTRACT_CHAR,
     CAL_END);
     signal cal_state : cal_type := CAL_IDEL; 
     
@@ -351,7 +354,7 @@ architecture Behavioral of set_sht3x is
     signal multi_result_ready  :   std_logic;
     signal multi_result_data   :   std_logic_vector (31 downto 0);
     
-    
+    signal step_extract_ch     :   unsigned (7 downto 0);
 
     
 
@@ -376,6 +379,18 @@ architecture Behavioral of set_sht3x is
     
     signal result_calculate_A       :   std_logic_vector (31 downto 0);
     signal result_calculate_B       :   std_logic_vector (31 downto 0);
+    
+    
+    signal integer_temp       :   std_logic_vector (15 downto 0);
+    signal decimal_temp       :   std_logic_vector (15 downto 0);
+    signal integer_humi       :   std_logic_vector (15 downto 0);
+    
+    signal ch_temp_one       :   std_logic_vector (7 downto 0);
+    signal ch_temp_two       :   std_logic_vector (7 downto 0);
+    signal ch_temp_three     :   std_logic_vector (7 downto 0);
+    signal ch_humi_one       :   std_logic_vector (7 downto 0);
+    signal ch_humi_two       :   std_logic_vector (7 downto 0);
+    
     
     
     constant const_float_45    : std_logic_vector := x"c2340000";
@@ -850,6 +865,18 @@ begin
                     float_fix_valid <= '0';  
                     float_fix_data  <= (others => '0');
                     float_fix_result_ready <= '0';
+
+                    integer_temp    <= (others => '0');
+                    decimal_temp    <= (others => '0');
+                    integer_humi    <= (others => '0');
+                    ch_temp_one     <= (others => '0');
+                    ch_temp_two     <= (others => '0');
+                    ch_temp_three   <= (others => '0');
+                    ch_humi_one     <= (others => '0');
+                    ch_humi_two     <= (others => '0');
+                    
+                    
+                    
                             
                     
                     Num_step_debug <= x"00";
@@ -1131,7 +1158,7 @@ begin
                 
                 
                 
-                when CAL_LTX_RESET_H =>
+                when CAL_LTX_RESET_H =>                
                     Num_step_debug <= x"50";
                     float_fix_reset <= '0';
                     if(float_fix_reset <= '0')then
@@ -1155,14 +1182,40 @@ begin
                         Num_step_debug <= x"55";
                         float_fix_result_ready <= '1';
                         humidity_bits        <= float_fix_result_data;
-                        cal_state              <= CAL_END;
+                        cal_state              <= EXTRACT_CHAR;
                         cal_respond_cu <= '1';
+                        step_extract_ch <= (others => '0');
                     end if;
                 
                 
-                
-                
-                
+                when EXTRACT_CHAR =>
+                    if(step_extract_ch = x"00")then
+                        step_extract_ch <= step_extract_ch + 1;
+                       -- integer_humi <= std_logic_vector(unsigned(humidity_bits) and x"ffff0000");
+                        integer_temp <= tempratuer_bits(31 downto 16);
+                        
+                    elsif(step_extract_ch = x"01")then
+                        step_extract_ch <= step_extract_ch + 1;
+                        integer_humi <= std_logic_vector(unsigned(integer_humi) srl 16); 
+                        ch_temp_one <= std_logic_vector(unsigned(integer_temp(7 downto 0)) / 10);
+                        ch_temp_two <= std_logic_vector(unsigned(integer_temp(7 downto 0)) mod 10);
+                         
+                    elsif(step_extract_ch = x"02")then
+                        step_extract_ch <= step_extract_ch + 1;
+                        ch_humi_one <= std_logic_vector(unsigned(integer_humi(7 downto 0)) / X"0a");
+                        ch_humi_two <= std_logic_vector(unsigned(integer_humi(7 downto 0)) mod X"0a");
+                        integer_temp <= tempratuer_bits(15 downto 0);
+                        
+                    elsif(step_extract_ch = x"03")then
+                        step_extract_ch <= step_extract_ch + 1;
+                        integer_temp <= std_logic_vector(unsigned(integer_temp(7 downto 0)) * X"0a");
+                        
+                    elsif(step_extract_ch = x"04")then
+                        step_extract_ch <= step_extract_ch + 1;
+                        ch_temp_three <= std_logic_vector(unsigned(integer_temp) mod X"0a");
+                        cal_state <= CAL_END;
+                        
+                    end if;
 
                 
                 
@@ -1187,3 +1240,4 @@ begin
 
 
 end Behavioral;
+S
