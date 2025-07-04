@@ -66,9 +66,10 @@ architecture Behavioral of set_sht3x is
         probe15 : in STD_LOGIC_VECTOR (7  downto 0);
         probe16 : in STD_LOGIC_VECTOR (7  downto 0);
         probe17 : in STD_LOGIC_VECTOR (7  downto 0);
-        probe18 : in STD_LOGIC_VECTOR (7  downto 0);
+        probe18 : in STD_LOGIC_VECTOR (15  downto 0);
         probe19 : in STD_LOGIC_VECTOR (7  downto 0);
         probe20 : in STD_LOGIC_VECTOR (7  downto 0);
+        probe21 : in std_logic_vector (35 downto 0)
     );
     end component;
     
@@ -386,9 +387,9 @@ architecture Behavioral of set_sht3x is
     signal result_calculate_B       :   std_logic_vector (31 downto 0);
     
     
-    signal integer_temp       :   std_logic_vector (15 downto 0);
-    signal decimal_temp       :   std_logic_vector (15 downto 0);
-    signal integer_humi       :   std_logic_vector (15 downto 0);
+    signal integer_temp       :   unsigned (15 downto 0);
+    signal decimal_temp       :   unsigned (35 downto 0);
+    signal integer_humi       :   unsigned (15 downto 0);
     
     signal ch_temp_one       :   std_logic_vector (7 downto 0);
     signal ch_temp_two       :   std_logic_vector (7 downto 0);
@@ -440,9 +441,10 @@ begin
         probe15 => Num_step_debug_1,
         probe16 => ch_temp_one,
         probe17 => ch_temp_two,
-        probe18 => ch_temp_three,
-        probe19 => ch_humi_one,
-        probe20 => ch_humi_two
+        probe18 => std_logic_vector(integer_temp),
+        probe19 => ch_temp_three,
+        probe20 => ch_humi_two,
+        probe21 => std_logic_vector(decimal_temp)
     );
     
     i2c_0: i2c
@@ -1193,7 +1195,6 @@ begin
                         float_fix_result_ready <= '1';
                         humidity_bits        <= float_fix_result_data;
                         cal_state              <= EXTRACT_CHAR;
-                        cal_respond_cu <= '1';
                         step_extract_ch <= (others => '0');
                     end if;
                 
@@ -1203,31 +1204,33 @@ begin
                         Num_step_debug <= x"56";
                         step_extract_ch <= step_extract_ch + 1;
                        -- integer_humi <= std_logic_vector(unsigned(humidity_bits) and x"ffff0000");
-                        integer_temp <= tempratuer_bits(31 downto 16);
+                        integer_temp <= unsigned(tempratuer_bits(31 downto 16));
                         
                     elsif(step_extract_ch = x"01")then
                         Num_step_debug <= x"57";
                         step_extract_ch <= step_extract_ch + 1;
-                        integer_humi <= std_logic_vector(unsigned(integer_humi) srl 16); 
-                        ch_temp_one <= std_logic_vector(unsigned(integer_temp(7 downto 0)) / 10);
-                        ch_temp_two <= std_logic_vector(unsigned(integer_temp(7 downto 0)) mod 10);
+                        integer_humi <= unsigned(humidity_bits(31 downto 16)); 
+                        ch_temp_one <= std_logic_vector(integer_temp(7 downto 0) / 10);
+                        ch_temp_two <= std_logic_vector(integer_temp(7 downto 0) mod 10);
                          
                     elsif(step_extract_ch = x"02")then
                         Num_step_debug <= x"58";
                         step_extract_ch <= step_extract_ch + 1;
                         ch_humi_one <= std_logic_vector(unsigned(integer_humi(7 downto 0)) / X"0a");
                         ch_humi_two <= std_logic_vector(unsigned(integer_humi(7 downto 0)) mod X"0a");
-                        integer_temp <= tempratuer_bits(15 downto 0);
+                        tempratuer_bits <= tempratuer_bits  and  X"0000ffff";
+                        --integer_temp <= unsigned(tempratuer_bits(15 downto 0));
                         
                     elsif(step_extract_ch = x"03")then
                         Num_step_debug <= x"59";
                         step_extract_ch <= step_extract_ch + 1;
-                        integer_temp <= std_logic_vector(unsigned(integer_temp(7 downto 0)) * X"0a");
+                        decimal_temp <= unsigned(tempratuer_bits) * to_unsigned(10,4);
+                        --decimal_temp <= integer_temp  *  to_unsigned(10,4);
                         
                     elsif(step_extract_ch = x"04")then
                         Num_step_debug <= x"60";
                         step_extract_ch <= step_extract_ch + 1;
-                        ch_temp_three <= std_logic_vector(unsigned(integer_temp) mod X"0a");
+                        ch_temp_three <= std_logic_vector(decimal_temp(23 downto 16));
                         cal_state <= CAL_END;
                         
                     end if;
@@ -1239,7 +1242,8 @@ begin
                 
                 when CAL_END =>
                     Num_step_debug <= x"FF";
-                    cal_state <= CAL_IDEL;
+                    cal_respond_cu <= '1';
+                    cal_state      <= CAL_IDEL;
                 when others =>
                     cal_state <= CAL_IDEL;
             end case;
