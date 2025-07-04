@@ -380,6 +380,10 @@ architecture Behavioral of set_sht3x is
     signal tempratuer_bits          :   std_logic_vector (31 downto 0);
     signal humidity_bits            :   std_logic_vector (31 downto 0);
     
+    signal tempratuer_fix          :   std_logic_vector (31 downto 0);
+    signal humidity_fix            :   std_logic_vector (31 downto 0);
+    signal tempratuer_cal          :   std_logic_vector (31 downto 0);
+    
     signal tempratuer_bits_float    :   std_logic_vector (31 downto 0);
     signal humidity_bits_float      :   std_logic_vector (31 downto 0);
     
@@ -432,10 +436,10 @@ begin
         probe6  => r_data_3_sig,
         probe7  => r_data_4_sig,
         probe8  => r_data_5_sig,
-        probe9  => r_data_6_sig,
+        probe9  => ch_humi_one,
         probe10 => result_calculate_B,
-        probe11 => humidity_bits,
-        probe12 => result_calculate_A,
+        probe11 => tempratuer_fix,
+        probe12 => tempratuer_bits_float,
         probe13 => tempratuer_bits,
         probe14 => Num_step_debug,
         probe15 => Num_step_debug_1,
@@ -889,6 +893,9 @@ begin
                     
                     
                     
+                    
+                    
+                    
                             
                     
                     Num_step_debug <= x"00";
@@ -896,6 +903,8 @@ begin
                 when CAL_START =>
                     Num_step_debug <= x"01";
                     if(old_cal_requst = '0'  and  cu_requst_cal = '1')then
+                        tempratuer_fix                <= (others => '0');
+                        humidity_fix                  <= (others => '0');
                         tempratuer_bits(15 downto 8)  <= r_data_1_sig;
                         tempratuer_bits(7 downto 0)   <= r_data_2_sig;
                         humidity_bits(15 downto 8)    <= r_data_4_sig;
@@ -930,6 +939,11 @@ begin
                         tempratuer_bits_float  <= fix_float_result_data;
                         cal_state              <= CAL_RESET_XH;
                     end if;
+                    
+                    
+                   
+                   
+                    
                 when CAL_RESET_XH =>
                     Num_step_debug <= x"08";
                     fix_float_reset        <= '0';
@@ -939,9 +953,8 @@ begin
                     if(fix_float_reset = '0')then
                         Num_step_debug <= x"09";
                         cal_state              <= CAL_GIVE_XH;
+
                     end if;
-                    
-                    
                 when CAL_GIVE_XH =>
                     Num_step_debug <= x"10";
                     fix_float_reset <= '1';
@@ -1004,6 +1017,7 @@ begin
 
 
                 when CAL_DIVID_RESET_T =>
+                    float_fix_reset <= '1';
                     Num_step_debug <= x"20";
                     divi_reset <= '0';
                     if(divi_reset = '0')then
@@ -1036,6 +1050,7 @@ begin
 
                 
                 when CAL_SUB_RESET_T =>
+                    float_fix_reset <= '0';
                     Num_step_debug <= x"26";
                     sub_reset <= '0';
                     if(sub_reset = '0')then
@@ -1096,7 +1111,7 @@ begin
                     if(float_fix_result_valid = '1')then
                         Num_step_debug <= x"37";
                         float_fix_result_ready <= '1';
-                        tempratuer_bits        <= float_fix_result_data;
+                        tempratuer_fix         <= float_fix_result_data;
                         cal_state              <= CAL_DIVID_RESET_H;
                     end if;
                     
@@ -1130,7 +1145,7 @@ begin
                     Num_step_debug <= x"42";
                     if(divi_result_valid = '1')then
                         Num_step_debug <= x"43";
-                        divi_result_ready <= '1';
+                        divi_result_ready  <= '1';
                         result_calculate_A <= divi_result_data;
                         cal_state          <= CAL_MULTI_RESET_H;
                     end if;
@@ -1193,7 +1208,7 @@ begin
                     if(float_fix_result_valid = '1')then
                         Num_step_debug <= x"55";
                         float_fix_result_ready <= '1';
-                        humidity_bits        <= float_fix_result_data;
+                        humidity_fix        <= float_fix_result_data;
                         cal_state              <= EXTRACT_CHAR;
                         step_extract_ch <= (others => '0');
                     end if;
@@ -1203,13 +1218,13 @@ begin
                     if(step_extract_ch = x"00")then
                         Num_step_debug <= x"56";
                         step_extract_ch <= step_extract_ch + 1;
-                       -- integer_humi <= std_logic_vector(unsigned(humidity_bits) and x"ffff0000");
-                        integer_temp <= unsigned(tempratuer_bits(31 downto 16));
+                       -- integer_humi <= std_logic_vector(unsigned(humidity_fix) and x"ffff0000");
+                        integer_temp <= unsigned(tempratuer_fix(31 downto 16));
                         
                     elsif(step_extract_ch = x"01")then
                         Num_step_debug <= x"57";
                         step_extract_ch <= step_extract_ch + 1;
-                        integer_humi <= unsigned(humidity_bits(31 downto 16)); 
+                        integer_humi <= unsigned(humidity_fix(31 downto 16)); 
                         ch_temp_one <= std_logic_vector(integer_temp(7 downto 0) / 10);
                         ch_temp_two <= std_logic_vector(integer_temp(7 downto 0) mod 10);
                          
@@ -1218,13 +1233,13 @@ begin
                         step_extract_ch <= step_extract_ch + 1;
                         ch_humi_one <= std_logic_vector(unsigned(integer_humi(7 downto 0)) / X"0a");
                         ch_humi_two <= std_logic_vector(unsigned(integer_humi(7 downto 0)) mod X"0a");
-                        tempratuer_bits <= tempratuer_bits  and  X"0000ffff";
+                        tempratuer_cal <= tempratuer_fix  and  X"0000ffff";
                         --integer_temp <= unsigned(tempratuer_bits(15 downto 0));
                         
                     elsif(step_extract_ch = x"03")then
                         Num_step_debug <= x"59";
                         step_extract_ch <= step_extract_ch + 1;
-                        decimal_temp <= unsigned(tempratuer_bits) * to_unsigned(10,4);
+                        decimal_temp <= unsigned(tempratuer_cal) * to_unsigned(10,4);
                         --decimal_temp <= integer_temp  *  to_unsigned(10,4);
                         
                     elsif(step_extract_ch = x"04")then
