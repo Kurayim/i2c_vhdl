@@ -223,7 +223,7 @@ architecture Behavioral of set_sht3x is
     CAL_DIVID_RESET_H, CAL_DIVID_GIVE_H, CAL_DIVID_GET_H,
     CAL_MULTI_RESET_H, CAL_MULTI_GIVE_H, CAL_MULTI_GET_H,
     CAL_LTX_RESET_H, CAL_LTX_GIVE_H, CAL_LTX_GET_H,
-    EXTRACT_CHAR,
+    CAL_EXTRACT_CHAR,
     CAL_END);
     signal cal_state : cal_type := CAL_IDEL; 
     
@@ -1209,12 +1209,12 @@ begin
                         Num_step_debug <= x"55";
                         float_fix_result_ready <= '1';
                         humidity_fix        <= float_fix_result_data;
-                        cal_state              <= EXTRACT_CHAR;
+                        cal_state              <= CAL_EXTRACT_CHAR;
                         step_extract_ch <= (others => '0');
                     end if;
                 
                 
-                when EXTRACT_CHAR =>
+                when CAL_EXTRACT_CHAR =>
                     if(step_extract_ch = x"00")then
                         Num_step_debug <= x"56";
                         step_extract_ch <= step_extract_ch + 1;
@@ -1250,11 +1250,6 @@ begin
                         
                     end if;
 
-                
-                
-                
-                
-                
                 when CAL_END =>
                     Num_step_debug <= x"FF";
                     cal_respond_cu <= '1';
@@ -1262,11 +1257,19 @@ begin
                 when others =>
                     cal_state <= CAL_IDEL;
             end case;
-            
         end if;
-        
     end process;
 
+
+   display : process(clock)
+   begin
+        if(rising_edge(clock))then 
+            
+            
+            
+            
+        end if;
+   end process;
 
 
 
