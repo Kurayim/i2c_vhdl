@@ -70,7 +70,7 @@ begin
     begin
         if(rising_edge(clk))then
             
-            old_flag_next <= flag_next;
+            
             
             if(reset = '0')then
                 segmant_en <= std_logic_vector(to_unsigned(1,num_segment));
@@ -86,7 +86,10 @@ begin
         if(rising_edge(clk))then
             
             if(reset = '0')then
-                segmant_en <= std_logic_vector(to_unsigned(1,num_segment));
+                --segmant_en <= std_logic_vector(to_unsigned(1,num_segment));
+                
+                
+                
             elsif(old_flag_next = '0'  and  flag_next = '1')then
                 if(num_seg = to_unsigned(0,num_segment))then
                     segmant_bit <= unsigned(bit_seg);
@@ -97,8 +100,8 @@ begin
                 end if;
             end if;
                 
-                seg_led(0) <= points(1);
-                case(segmant_bit(3 downto 0)) is
+                seg_led(7) <= points(0);
+                case(segmant_bit(3 downto 0)) is 
                     when "0000" =>
                         seg_led(6 downto 0) <= "1000000";
                     when "0001" =>
@@ -128,203 +131,7 @@ begin
     
     
     
-    
-    
-    select_seg : process(clk)
-    begin
-        if(rising_edge(clk))then
-        
-            if(reset = '0')then
-                seg_en(0) <= '0';
-                seg_en(1) <= '0';
-                seg_en(2) <= '0';
-                seg_en(3) <= '0';
-                seg_en(4) <= '0';
-                
-                seg_led <= (others => '0');
-                
-            elsif(num_seg = to_unsigned(0,num_segment))then
-                seg_en(0) <= '1';
-                seg_en(1) <= '0';
-                seg_en(2) <= '0';
-                seg_en(3) <= '0';
-                seg_en(4) <= '0';
-                
-                
-                case(bit_seg(3 downto 0)) is
-                    when "0000" =>
-                        seg_led(6 downto 0) <= "1000000";
-                    when "0001" =>
-                        seg_led(6 downto 0) <= "1111001";
-                    when "0010" =>
-                        seg_led(6 downto 0) <= "0100100";
-                    when "0011" =>
-                        seg_led(6 downto 0) <= "0110000";
-                    when "0100" =>
-                        seg_led(6 downto 0) <= "0011001";
-                    when "0101" =>
-                        seg_led(6 downto 0) <= "0010010";
-                    when "0110" =>
-                        seg_led(6 downto 0) <= "0000011";
-                    when "0111" =>
-                        seg_led(6 downto 0) <= "1111000";
-                    when "1000" =>
-                        seg_led(6 downto 0) <= "0000000";
-                    when "1001" =>
-                        seg_led(6 downto 0) <= "0011000";
-                    when others =>
-                        seg_led(6 downto 0) <= "1111111";
-                end case;
-                
-                seg_led(7) <= bit_seg(4); 
-                
-                        
-            elsif(num_seg = to_unsigned(1,num_segment))then
-                seg_en(0) <= '0';
-                seg_en(1) <= '1';
-                seg_en(2) <= '0';
-                seg_en(3) <= '0';
-                seg_en(4) <= '0';
-                
-                case(bit_seg(8 downto 5)) is
-                    when "0000" =>
-                        seg_led(6 downto 0) <= "1000000";
-                    when "0001" =>
-                        seg_led(6 downto 0) <= "1111001";
-                    when "0010" =>
-                        seg_led(6 downto 0) <= "0100100";
-                    when "0011" =>
-                        seg_led(6 downto 0) <= "0110000";
-                    when "0100" =>
-                        seg_led(6 downto 0) <= "0011001";
-                    when "0101" =>
-                        seg_led(6 downto 0) <= "0010010";
-                    when "0110" =>
-                        seg_led(6 downto 0) <= "0000011";
-                    when "0111" =>
-                        seg_led(6 downto 0) <= "1111000";
-                    when "1000" =>
-                        seg_led(6 downto 0) <= "0000000";
-                    when "1001" =>
-                        seg_led(6 downto 0) <= "0011000";
-                    when others =>
-                        seg_led(6 downto 0) <= "1111111";
-                end case;
-                
-                seg_led(7) <= bit_seg(9);
-                
-            elsif(num_seg = to_unsigned(2,num_segment))then
-                seg_en(0) <= '0';
-                seg_en(1) <= '0';
-                seg_en(2) <= '1';
-                seg_en(3) <= '0';
-                seg_en(4) <= '0';
-                
-                case(bit_seg(13 downto 10)) is
-                    when "0000" =>
-                        seg_led(6 downto 0) <= "1000000";
-                    when "0001" =>
-                        seg_led(6 downto 0) <= "1111001";
-                    when "0010" =>
-                        seg_led(6 downto 0) <= "0100100";
-                    when "0011" =>
-                        seg_led(6 downto 0) <= "0110000";
-                    when "0100" =>
-                        seg_led(6 downto 0) <= "0011001";
-                    when "0101" =>
-                        seg_led(6 downto 0) <= "0010010";
-                    when "0110" =>
-                        seg_led(6 downto 0) <= "0000011";
-                    when "0111" =>
-                        seg_led(6 downto 0) <= "1111000";
-                    when "1000" =>
-                        seg_led(6 downto 0) <= "0000000";
-                    when "1001" =>
-                        seg_led(6 downto 0) <= "0011000";
-                    when others =>
-                        seg_led(6 downto 0) <= "1111111";
-                end case;
-                
-                seg_led(7) <= bit_seg(14);
-                                
-            elsif(num_seg = to_unsigned(3,num_segment))then
-                seg_en(0) <= '0';
-                seg_en(1) <= '0';
-                seg_en(2) <= '0';
-                seg_en(3) <= '1';
-                seg_en(4) <= '0';
-                
-                case(bit_seg(18 downto 15)) is
-                    when "0000" =>
-                        seg_led(6 downto 0) <= "1000000";
-                    when "0001" =>
-                        seg_led(6 downto 0) <= "1111001";
-                    when "0010" =>
-                        seg_led(6 downto 0) <= "0100100";
-                    when "0011" =>
-                        seg_led(6 downto 0) <= "0110000";
-                    when "0100" =>
-                        seg_led(6 downto 0) <= "0011001";
-                    when "0101" =>
-                        seg_led(6 downto 0) <= "0010010";
-                    when "0110" =>
-                        seg_led(6 downto 0) <= "0000011";
-                    when "0111" =>
-                        seg_led(6 downto 0) <= "1111000";
-                    when "1000" =>
-                        seg_led(6 downto 0) <= "0000000";
-                    when "1001" =>
-                        seg_led(6 downto 0) <= "0011000";
-                    when others =>
-                        seg_led(6 downto 0) <= "1111111";
-                end case;
-                
-                seg_led(7) <= bit_seg(19);
-                                
-            elsif(num_seg = to_unsigned(4,num_segment))then
-                seg_en(0) <= '0';
-                seg_en(1) <= '0';
-                seg_en(2) <= '0';
-                seg_en(3) <= '0';
-                seg_en(4) <= '1';
-                
-                case(bit_seg(23 downto 20)) is
-                    when "0000" =>
-                        seg_led(6 downto 0) <= "1000000";
-                    when "0001" =>
-                        seg_led(6 downto 0) <= "1111001";
-                    when "0010" =>
-                        seg_led(6 downto 0) <= "0100100";
-                    when "0011" =>
-                        seg_led(6 downto 0) <= "0110000";
-                    when "0100" =>
-                        seg_led(6 downto 0) <= "0011001";
-                    when "0101" =>
-                        seg_led(6 downto 0) <= "0010010";
-                    when "0110" =>
-                        seg_led(6 downto 0) <= "0000011";
-                    when "0111" =>
-                        seg_led(6 downto 0) <= "1111000";
-                    when "1000" =>
-                        seg_led(6 downto 0) <= "0000000";
-                    when "1001" =>
-                        seg_led(6 downto 0) <= "0011000";
-                    when others =>
-                        seg_led(6 downto 0) <= "1111111";
-                        
-                    seg_led(7) <= bit_seg(24);
-                    
-                end case;
-                                
-            end if;
-            
-            
-            
-            
-            
-        end if;
-    end process; 
-    
+
     
     
     
@@ -333,6 +140,7 @@ begin
         if(rising_edge(clk))then
             
             counter_clk <= counter_clk + 1;
+            old_flag_next <= flag_next;
             
             
             if(counter_clk > to_unsigned(7,3))then
