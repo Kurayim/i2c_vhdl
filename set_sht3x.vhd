@@ -107,6 +107,22 @@ architecture Behavioral of set_sht3x is
     end component;
     
     
+    component seven_segment
+    generic(clk_freq    : integer :=  50000000; 
+            num_segment : integer :=  5
+         );
+    Port ( clk       : in  std_logic;
+           reset     : in  std_logic;
+           bit_seg   : in  std_logic_vector  (((Num_segment*4) - 1)  downto 0);
+           bit_point : in  std_logic_vector  ((Num_segment - 1)      downto 0);
+           seg_en    : out std_logic_vector ((num_segment - 1)      downto 0);
+           seg_led   : out std_logic_vector (7 downto 0)
+         );
+    end component;
+    
+    
+    
+    
         component crc_8
         port(
             clk     : in  std_logic;
@@ -227,6 +243,9 @@ architecture Behavioral of set_sht3x is
     CAL_END);
     signal cal_state : cal_type := CAL_IDEL; 
     
+    type dis_type is (DIS_IDEL, DIS_RESET, DIS_GIVE, DIS_END);
+    signal dis_state : dis_type := DIS_IDEL; 
+    
     
 
 
@@ -300,6 +319,12 @@ architecture Behavioral of set_sht3x is
 
     signal cal_respond_cu    : std_logic;
     signal old_cal_respond   : std_logic;
+    
+    signal cu_requst_dis     : std_logic;
+    signal old_dis_requst    : std_logic;
+
+    signal dis_respond_cu    : std_logic;
+    signal old_dis_respond   : std_logic;
     
     
 
@@ -402,6 +427,15 @@ architecture Behavioral of set_sht3x is
     signal ch_humi_two       :   std_logic_vector (7 downto 0);
     
     
+    signal sevg_reset             :   std_logic;
+    signal sevg_bit_seg           :   std_logic_vector(19 downto 0);
+    signal sevg_bit_point         :   std_logic_vector(4  downto 0);
+    signal sevg_seg_en            :   std_logic_vector(4  downto 0);
+    signal sevg_led               :   std_logic_vector(7  downto 0);
+    
+    
+    
+    
     
     constant const_float_45    : std_logic_vector := x"c2340000";
     constant const_float_175   : std_logic_vector := x"432f0000";
@@ -482,6 +516,23 @@ begin
             scl            => scl,
             sda            => sda
         );
+        
+        
+    sev_seg : seven_segment
+    generic map(clk_freq    => 50000000,
+                num_segment => 5
+         )
+    port map ( 
+           clk          => clock,
+           reset        => sevg_reset,      --1 BIT
+           bit_seg      => sevg_bit_seg,    --20 BIT
+           bit_point    => sevg_bit_point,  --5 BIT
+           seg_en       => sevg_seg_en,     --5 BIT
+           seg_led      => sevg_led         --8 BIT
+         );
+        
+
+        
         
         
     crc_1  : crc_8
@@ -619,6 +670,7 @@ begin
             old_iic_respond <= iic_respond_cu;
             old_crc_respond <= crc_respond_cu;
             old_cal_respond <= cal_respond_cu;
+            old_dis_respond <= dis_respond_cu;
             old_ex_signal   <= ex_signal;
             
             case(cu_state) is
@@ -675,15 +727,25 @@ begin
                         Num_step_debug_1 <= x"12";
                        -- led_sig <= '0';
                         cu_requst_cal <= '0';
-                        cu_state <= CU_END;
+                        cu_state <= CU_DISPLAY;
                         
                     end if;
                     
                 when CU_DISPLAY =>
+                    Num_step_debug_1 <= x"13";
+                    cu_requst_dis <= '1';
+                    if(old_dis_respond = '0' and  dis_respond_cu = '1')then
+                        Num_step_debug_1 <= x"14";
+                        cu_requst_dis <= '0';
+                        cu_state <= CU_END;
+                    
+                    end if;
                     
                 when CU_END =>
+                    Num_step_debug_1 <= x"15";
                     cu_state <= CU_IDEL;
                 when others =>
+                    Num_step_debug_1 <= x"16";
                     cu_state <= CU_IDEL;
             end case;
 
@@ -1265,12 +1327,44 @@ begin
    begin
         if(rising_edge(clock))then 
             
+            old_dis_requst <= cu_requst_dis;
             
+            
+            case(dis_state) is
+            
+                when DIS_RESET =>
+                    sevg_reset <= '0';
+                    sevg_bit_seg <= (others => '0');
+                    sevg_bit_point <= (others => '0');
+                    
+                when DIS_IDEL =>
+                    
+                    if(old_dis_requst = '0'  and  cu_requst_dis = '1')then
+                        sevg_reset     <= '1';
+                        dis_respond_cu <= '0';
+                        dis_state      <= DIS_RESET;
+                    end if;
+                                   
+                when DIS_GIVE =>
+                    sevg_bit_seg(3 downto 0)   <= ch_temp_one(3 downto 0);
+                    sevg_bit_seg(3 downto 0)   <= ch_temp_two(3 downto 0);
+                    sevg_bit_seg(3 downto 0)   <= ch_temp_three(3 downto 0);
+                    sevg_bit_seg(3 downto 0)   <= ch_humi_one(3 downto 0);
+                    sevg_bit_seg(3 downto 0)   <= ch_humi_two(3 downto 0);
+                    sevg_bit_point <= "00010";
+                    dis_state      <= DIS_END;
+                    
+                when DIS_END =>
+                    dis_respond_cu <= '1';
+                    dis_state      <= DIS_IDEL;
+                    
+                when others =>
+                    dis_state <= DIS_IDEL;
+            end case;
             
             
         end if;
    end process;
-
 
 
 
