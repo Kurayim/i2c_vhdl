@@ -19,3 +19,5 @@ Once the final, human-readable values of temperature and humidity were obtained,
 ## Key Takeaways
 
 This project not only strengthened my skills in VHDL and modular hardware design but also provided practical experience in serial communication (I2C), data integrity verification (CRC), and floating-point computation implementation on FPGA platforms.
+
+
