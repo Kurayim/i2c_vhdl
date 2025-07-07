@@ -1,5 +1,3 @@
-![ChatGPT Image Jul 6, 2025, 10_43_28 PM](https://github.com/user-attachments/assets/b098aaba-b819-424d-b335-50cb7f182a07)# FPGA-Based I2C Interface with SHT3x Sensor (VHDL)
-
 ## Project Overview
 
 This project represents my first hands-on experience with digital design using VHDL. The initial goal was to implement the I2C protocol in a simulation environment to study its theoretical and software-level behavior. However, as the development progressed, I realized that simulation alone was not sufficient. I decided to take the project further and validate it through real hardware implementation.
@@ -8,7 +6,7 @@ This project represents my first hands-on experience with digital design using V
 
 
 
-![ChatGPT Image Jul 6, 2025, 10_43_28 PM](https://github.com/user-attachments/assets/b26fc006-fdc1-4fea-b157-c5a04c5cc36b)
+![ChatGPT Image Jul 6, 2025, 10_43_28 PM](https://github.com/user-attachments/assets/44e79e31-375d-472c-9c5c-3b00418177b6)
 
 
 
