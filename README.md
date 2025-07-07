@@ -1,4 +1,4 @@
-# FPGA-Based I2C Interface with SHT3x Sensor (VHDL)
+![ChatGPT Image Jul 6, 2025, 10_43_28 PM](https://github.com/user-attachments/assets/b098aaba-b819-424d-b335-50cb7f182a07)# FPGA-Based I2C Interface with SHT3x Sensor (VHDL)
 
 ## Project Overview
 
@@ -6,8 +6,9 @@ This project represents my first hands-on experience with digital design using V
 
 
 
-![Uploading ChatGPT Image Jul 6, 2025, 10_43_28 PM.png…]()
 
+
+![ChatGPT Image Jul 6, 2025, 10_43_28 PM](https://github.com/user-attachments/assets/b26fc006-fdc1-4fea-b157-c5a04c5cc36b)
 
 
 
