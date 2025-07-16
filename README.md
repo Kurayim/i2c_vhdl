@@ -25,7 +25,9 @@ A major challenge in this project was converting the raw data into meaningful te
 
 ## Displaying Measured Values
 
-Once the final, human-readable values of temperature and humidity were obtained, they needed to be converted into character representations suitable for display on a seven-segment display. To accomplish this, I used the `seven_segment.vhd` module, which handles the conversion of numeric values to a format compatible with seven-segment displays. The final output allows users to easily read real-time temperature and humidity measurements directly on the display.
+After obtaining the final, human-readable values of temperature and humidity, it was necessary to convert these values into character format suitable for display on a seven-segment display. For this purpose, I used the seven_segment.vhd module, which handles the conversion of numerical values into a format compatible with seven-segment displays.
+
+The final output of this module allows users to easily and clearly view the real-time temperature and humidity values on the display. However, due to a malfunction in the seven-segment display used in this project, I decided to send the temperature and humidity data to my laptop via the UART protocol and display them in a terminal instead. This task was accomplished using the tx.v module.
 
 ## Key Takeaways
 
